@@ -1,0 +1,9 @@
+Bayer and Groth verifiable shuffle
+Copyright 2017 and onwards Stephanie Bayer-Ring and Jens Groth.
+
+Modifications copyright 2017 and onwards Nirvan Tyagi, Yossi Gilad,
+Derek Leung, Matei Zaharia, and Nickolai Zeldovich.
+
+This library contains source code derived from work by Andrew Moon,
+Adam Langley, and Daniel Bernstein in the public domain
+(https://github.com/floodyberry/ed25519-donna).

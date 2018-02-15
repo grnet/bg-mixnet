@@ -344,7 +344,7 @@ void test() {
 	srand ((unsigned int) time (NULL));
 	
 	long m = num[1];
-	long n = 65;
+	long n = num[2];
 	cout << "shuffling " << n * m << " messages" <<endl;
 	unsigned char** secrets = new unsigned char* [m * n];
 	

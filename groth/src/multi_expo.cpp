@@ -490,8 +490,10 @@ void  multi_expo::expo_mult(Cipher_elg& prod, const vector<vector<Cipher_elg>*>*
 	Cipher_elg temp;
 	long i,l;
 	l = a->size();
+        cout << "expo_mult -- vector a size: " << l << endl;
 	expo_mult(prod,a->at(0), s1->at(0), s2, omega);
 	for(i = 1; i<l; i++){
+                cout << "expo_mult i: " << i << " -- vector s1 size: " << s1->size() << endl;
 		expo_mult(temp,a->at(i), s1->at(i), s2, omega);
 		Cipher_elg::mult(prod,prod,temp);
 	}

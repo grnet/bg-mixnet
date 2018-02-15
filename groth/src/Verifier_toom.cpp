@@ -848,7 +848,7 @@ void Verifier_toom::check_E_red(vector<vector<Cipher_elg>* >* C, bool& b){
 	Cipher_elg temp_1,  temp_2, t_D, c_D;
 	vector<ZZ>* x_temp= new vector<ZZ>(4);
 	vector<ZZ>* chal_1_temp= new vector<ZZ>(4);
-	vector<ZZ>* chal_2_temp= new vector<ZZ>(4);
+	vector<ZZ>* chal_2_temp= new vector<ZZ>(4);    // size 4 causes crash for m>64; works with 8 (m=128), but shuffle fails
 	vector<vector<Cipher_elg>* >* C_small_temp=0;
 	//vector<Cipher_elg>* row_C;
 
@@ -881,6 +881,7 @@ void Verifier_toom::check_E_red(vector<vector<Cipher_elg>* >* C, bool& b){
 	for(i=0; i<m_r;i++){
 		C_small_temp->at(i) = new vector<Cipher_elg>(n);
 	}
+        cout << "C_small_temp size: " << C_small_temp->size() << " (equals m_r)" << endl;
 	
 	#pragma omp parallel for collapse(2) num_threads(num_threads) if(parallel)
 	for(i=0; i<m_r;i++){
@@ -896,7 +897,7 @@ void Verifier_toom::check_E_red(vector<vector<Cipher_elg>* >* C, bool& b){
 
 	Mod_p::expo(temp, gen,a_bar);
 	temp_2 = elgammal_->encrypt(temp, rho_bar);
-	multi_expo::expo_mult(temp_1, C_small_temp, chal_2_temp, B_bar, omega);
+	multi_expo::expo_mult(temp_1, C_small_temp, chal_2_temp, B_bar, omega);  // crash because of chal_2_temp size
 	Cipher_elg::mult(c_D,temp_1,temp_2);
 	//c_D=temp_2*temp_1;
 

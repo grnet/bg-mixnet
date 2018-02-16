@@ -13,12 +13,12 @@ The Stadium mixnet's efficiency is significantly improved over both the original
 
 | Computing environment            | Mixnet                     | Total (sec) | Verify (sec) | Prove (sec) | Shuffle (sec) |
 |:--------------------------------:|:----------------------------------:| -----------:| ------------:| -----------:| -------------:|
-| Linux Ubuntu VM, 2 CPU, 4 GB RAM | non-interactive, m = 64, n =  1563 |  67         |  12          |  42         |  13           |
-| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium, m = 64, n =  1563         |  67         |  12          |  42         |  13           |
-| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium, m = 64, n = 15625         | 924         | 154          | 644         | 126           |
-| Linux Ubuntu VM, 8 CPU, 8 GB RAM | Stadium, m = 64, n = 15625         | 405         | 89           | 263         |  53           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM | non-interactive: m = 64, n = 1563  |  67         |  12          |  42         |  13           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium: m = 64, n =  1563         |  67         |  12          |  42         |  13           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium: m = 64, n = 15625         | 924         | 154          | 644         | 126           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM | Stadium: m = 64, n = 15625         | 405         | 89           | 263         |  53           |
 
-In their paper (see README-stadium.md), the authors show that in a single server installation, Stadium's efficiency improves linearly with the number of available cores in the system. The presented experiment results agree with this pattern.
+In their paper (see [https://github.com/grnet/bg-mixnet/blob/master/README-stadium.md](README-stadium.md)), the authors show that in a single server installation, Stadium's efficiency improves linearly with the number of available cores in the system. The presented experiment results agree with this pattern.
 
 ### Limitations
 
@@ -32,7 +32,7 @@ Stadium's mixnet crashes for m > 64, e.g. 128. This is because of a vector data 
 
 ### Build
 
-make test
+`make test`
 
 ### Configure
 
@@ -40,4 +40,4 @@ Modify the `config/config` file
 
 ### Execute
 
-./test
+`./test`

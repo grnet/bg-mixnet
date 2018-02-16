@@ -9,30 +9,178 @@
 
 #include "G_q.h"
 
-#include "FakeZZ.h"
-#include "CurvePoint.h"
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
-#include <assert.h>
-
 #include <time.h>
-#include <sstream>
-void G_q::print() const {
-	cout << generator << endl;
-	cout << order << endl;
-	cout << mod << endl;
+G_q::G_q() {
+	// TODO Auto-generated constructor stub
+
 }
 
-G_q::G_q() {}
+
+//Constructor creates an instance of G_q subset Z_p with order o and generator g
+G_q::G_q(Mod_p gen, long o, long p){
+
+	generator = gen;
+	order = to_ZZ(o);
+	mod = to_ZZ(p);
+	if (gen.get_mod() != p)
+		cout  << "The modular value of the generator and p are not equal" << endl;
+}
+
+//Constructor creates an instance of G_q subset Z_p with order o and generator g
+G_q::G_q(Mod_p gen, long o, ZZ p){
+
+	generator = gen;
+	order = to_ZZ(o);
+	mod = p;
+
+	if (gen.get_mod() != p)
+		cout  << "The modular value of the generator and p are not equal" << endl;
+
+}
+
+
+//Constructor creates an instance of G_q subset Z_p with order o and generator g
+G_q::G_q(Mod_p gen, ZZ o, ZZ p){
+
+	generator = gen;
+	order = o;
+	mod = p;
+
+	if (gen.get_mod() != p)
+		cout  << "The modular value of the generator and p are not equal" << endl;
+
+}
+
 
 //Constructor creates an instance of G_q subset Z_p with order o and generator value val
-G_q::G_q(CurvePoint val, ZZ o, ZZ p){
+G_q::G_q(ZZ val, long o, long p){
+
+	generator = Mod_p(val, p);
+	order = to_ZZ(o);
+	mod = to_ZZ(p);
+
+}
+
+//Constructor creates an instance of G_q subset Z_p with order o and generator value val
+G_q::G_q(ZZ val, long o, ZZ p){
+
+	generator = Mod_p(val, p);
+	order = to_ZZ(o);
+	mod = p;
+
+}
+
+//Constructor creates an instance of G_q subset Z_p with order o and generator value val
+G_q::G_q(ZZ val, ZZ o, ZZ p){
+
 	generator = Mod_p(val, p);
 	order = o;
 	mod = p;
+
 }
 
-G_q::~G_q() {}
+//Constructor creates an instance of G_q subset Z_p with order o and generator value val
+G_q::G_q(long val, long o, long p){
+
+	generator = Mod_p(val, p);
+	order = to_ZZ(o);
+	mod = to_ZZ(p);
+
+}
+
+//Constructor creates an instance of G_q subset Z_p with order o and generator value val
+G_q::G_q(long val, long o, ZZ p){
+
+	generator = Mod_p(val, p);
+	order = to_ZZ(o),
+	mod = p;
+
+}
+
+//Constructor creates an instance of G_q subset Z_p with order o and generator value val
+G_q::G_q(long val,ZZ o, ZZ p){
+
+	generator = Mod_p(val, p);
+	order = o;
+	mod = p;
+
+}
+
+//Constructor creates an instance of G_q with order o, generator gen and G_q is a subgroup if Z modulo gen.get_mod()
+G_q::G_q(Mod_p gen, long o){
+
+	generator = gen;
+	order = to_ZZ(o);
+	mod = gen.get_mod();
+}
+
+//Constructor creates an instance of G_q with order o, generator gen and G_q is a subgroup if Z modulo gen.get_mod()
+G_q::G_q(Mod_p gen, ZZ o){
+
+	generator = gen;
+	order = o;
+	mod = gen.get_mod();
+}
+
+//Constructor creates an instance of G_q  subset of Z_p with order o and searchs for the smallest generator
+G_q::G_q(long o,ZZ p){
+
+	ZZ i;
+	order = to_ZZ(o);
+	mod = p;
+	for (i = to_ZZ(1); i < p; ++i)
+	{
+		if (is_generator(i))
+		{
+			generator = Mod_p(i,p);
+			break;
+		}
+	}
+}
+
+//Constructor creates an instance of G_q  subset of Z_p with order o and searchs for the smallest generator
+G_q::G_q(ZZ o,ZZ p){
+
+	ZZ i,t;
+	order = o;
+	mod = p;
+	for (i = to_ZZ(2); i < p; ++i)
+	{
+		t=i%100000;
+		if(t==0){
+			cout<<";";
+		}
+		if (is_generator(i))
+		{
+			generator = Mod_p(i,p);
+			break;
+		}
+	}
+}
+
+//Constructor creates an instance of G_q  subset of Z_p with order o and searchs for the smallest generator
+G_q::G_q(long o, long p){
+
+	long i;
+	order = to_ZZ(o);
+	mod = to_ZZ(p);
+	for (i = 1; i < p; ++i)
+	{
+		if (is_generator(i))
+		{
+			generator = Mod_p(i,p);
+			break;
+		}
+	}
+}
+
+
+G_q::~G_q() {
+	// TODO Auto-generated destructor stub
+}
 
 
 //return the generator
@@ -55,41 +203,79 @@ ZZ G_q::get_mod()const{
 
 //Checks if an element is a generator of the group G
 bool G_q::is_generator(const Mod_p& el){
-#if USE_REAL_POINTS
-        return true; // TODO replace with not_identity
-#else
-	CurvePoint pow;
+	ZZ pow;
 	bool b;
 	b=false;
 	pow = PowerMod(el.get_val(),order,mod);
-	if((pow == curve_zeropoint()) & (el.get_val()!=curve_zeropoint()))
+	if(pow == to_ZZ(1)& el.get_val()!=1)
 	{
 		b=true;
 	}
 	return b;
-#endif
+}
+
+//Checks if an element is a generator of the group G
+bool G_q::is_generator(const ZZ& x){
+	ZZ pow;
+	bool b;
+	b=false;
+	pow = PowerMod(x,order,mod);
+
+	if(pow == to_ZZ(1) & x!=1)
+	{
+		b=true;
+
+	}
+
+	return b;
+}
+
+//Checks if an element is a generator of the group G
+bool G_q::is_generator(const long& x){
+	ZZ pow;
+	bool b;
+	pow = PowerMod(to_ZZ(x),order, mod);
+	if(pow == to_ZZ(1)& x!=1)
+	{
+		b=true;
+
+	}
+
+	return b;
 }
 
 //returns the identity of the group
 Mod_p G_q::identity(){
-  // TODO this is never called, right?
-  assert(false);
-	return Mod_p(curve_zeropoint(), mod);
+
+	return Mod_p(1, mod);
 }
 
-Mod_p G_q::map_to_group_element(ZZ& m) {
-#if USE_REAL_POINTS
-        CurvePoint x;
-        basepoint_scalarmult(x, m);
-        return Mod_p(x, mod);
-#else
-	return generator.expo(m);
-#endif
+//returns a random element of the group
+Mod_p G_q::random_el(){
+	ZZ ran,pow;
+	Mod_p temp;
+	SetSeed(to_ZZ(time(0)));
+	ran = RandomBnd(mod);
+	temp = generator.expo(ran);
+
+	return temp;
+
 }
 
+//returns a random element of the group, without setting the seed
+Mod_p G_q::random_el(int c){
+	ZZ ran,pow;
+	Mod_p temp;
+	ran = RandomBnd(order);
+	temp = generator.expo(ran);
+
+
+	return temp;
+
+}
 
 //returns an element of the group with value v
-Mod_p G_q::element(CurvePoint v){
+Mod_p G_q::element(ZZ v){
 
 
 	return Mod_p(v,mod);
@@ -99,12 +285,9 @@ Mod_p G_q::element(CurvePoint v){
 
 //returns an element of the group with value v
 Mod_p G_q::element(long v){
-  // TODO this is never called, right?
-  assert(false);
 
 
-	// return Mod_p(to_curve_pt(v),mod);
-  return Mod_p(curve_zeropoint(),mod);
+	return Mod_p(v,mod);
 
 }
 
@@ -118,8 +301,6 @@ void G_q::operator =(const G_q& H){
 
 //Output operator, output format is (generator value, order, modular value)
 ostream& operator<<(ostream& os, const G_q G){
-	return os<< "(";
-        os << G.get_gen().get_val();
-        return os << ", " << G.get_ord() <<", " << G.get_mod()<<")";
+	return os<< "("<< G.get_gen().get_val()<< ", " << G.get_ord() <<", " << G.get_mod()<<")";
 }
 

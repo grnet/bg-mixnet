@@ -6,53 +6,51 @@
  */
 
 #include "Prover_toom.h"
-#include<vector>
+
+#include <vector>
+#include <map>
 #include "Cipher_elg.h"
 #include "G_q.h"
 #include "Mod_p.h"
+#include "Functions.h"
 #include "ElGammal.h"
 #include "multi_expo.h"
 #include "func_pro.h"
 #include <fstream>
 #include <time.h>
-#include <sstream>
-#include <pthread.h>
-#include "FakeZZ.h"
-#include <chrono>
+
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
 //extern G_q G;
 extern G_q H;
-//extern ElGammal El;
+extern Pedersen Ped;
+extern ElGammal El;
 extern long mu;
 extern long mu_h;
+extern long m_r;
 
-//OpenMP config
-extern bool parallel;
-extern int num_threads;
+Prover_toom::Prover_toom() {
+	// TODO Auto-generated constructor stub
 
-//extern long m_r;
-
-using namespace std::chrono;
-
-
-Prover_toom::Prover_toom(long& m_r_) : m_r(m_r_) {
-// TODO remove containing stack -- this is never called
 }
 
-Prover_toom::Prover_toom(long& mr, vector<vector<Cipher_elg>* >* Cin,vector<vector<ZZ>*>* Rin, vector<vector<vector<long>* >* >* piin, vector<long> num, int m_in, int n_in, ElGammal* elgammal) : m_r(mr), elgammal_(elgammal), ped_(n_in) {
+Prover_toom::Prover_toom(vector<vector<Cipher_elg>* >* Cin,
+				vector<vector<ZZ>*>* Rin, 
+				vector<vector<vector<long>* >* >* piin, 
+				map<string, long> num, ZZ gen){
 
 	// set the dimensions of the row and columns according to the user input
-	m = m_in; //number of rows
-	n = n_in; //number of columns
+	m = num["ciphertext_matrix_rows"]; //number of rows
+	n = num["ciphertext_matrix_columns"]; //number of columns
 	C = Cin; //sets the reencrypted chipertexts to the input
 	R = Rin; //sets the random elements to the input
 	pi = piin; // sets the permutation to the input
-	omega_mulex = num[3]; //windowsize for sliding-window technique
-	omega_sw = num[4]; //windowsize for multi-expo technique
-	omega_LL = num[7]; //windowsize for multi-expo technique
+	omega_mulex = num["window_size_multi_exponentiation_brickels"]; //windowsize for sliding-window technique
+	omega_sw = num["window_size_multi_exponentiation"]; //windowsize for multi-expo technique
+	omega_LL = num["window_size_multi_exponentiation_lim_lee"]; //windowsize for multi-expo technique
 
-	ped_.set_omega(omega_mulex, omega_LL, omega_sw);
+
 	//Creates the matrices A
 	A = new vector<vector<ZZ>* >(m);
 	func_pro::set_A(A,pi, m, n);
@@ -86,6 +84,11 @@ Prover_toom::Prover_toom(long& mr, vector<vector<Cipher_elg>* >* Cin,vector<vect
 	r_B = new vector<ZZ>(m); //random elements used to commit to B
 	r_B_small = new vector<ZZ>(m_r); //random elements for commitments to B_small
 	c_B = new vector<Mod_p>(m); //vector of commitments to rows in T
+	a = new vector<ZZ>(2*m); //elements used for reencryption in round 5
+	r_a = new vector<ZZ>(2*m); //random elements to commit to elements in a
+	c_a = new vector<Mod_p>(2*m); //commitments to elements a
+	E = new vector<Cipher_elg>(2*m); //vector of the products of the diogonals of A^T generated in round 7
+	rho_a = new vector<ZZ>(2*m); //contains random elements used for the reencryption in 7
 
 	C_c = new vector<Cipher_elg>(mu_h);  //Ciphertexts to prove correctness of reduction
 	c_a_c= new vector<Mod_p>(mu_h); //vector containing the commitments to value used for the reencryption of E_c
@@ -131,10 +134,10 @@ Prover_toom::~Prover_toom() {
 
 	delete r_D_h;
 	delete c_D_h;
-	if (B != NULL) Functions::delete_vector(B);
-	if (basis_B != NULL) Functions::delete_vector(basis_B);
+	Functions::delete_vector(B);
+	Functions::delete_vector(basis_B);
 	delete B_0;
-	if (basis_B0 != NULL) Functions::delete_vector(basis_B0);
+	Functions::delete_vector(basis_B0);
 	delete r_B;
 	delete r_B_small;
 	delete c_B;
@@ -163,31 +166,40 @@ Prover_toom::~Prover_toom() {
 }
 
 
-string Prover_toom::get_public_vector() {
-	return ped_.get_public_vector();
-}
+
 
 //round_1 picks random elements and commits to the rows of A
 string Prover_toom::round_1(){
 	long i;
-	//calculates commitments to rows of A
-	Functions::commit_op(A,r_A,c_A, ped_);
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
 
-	//ofstream ost(name.c_str());
-	stringstream out_stream;
+	name = "round_1 ";
+	name = name + ctime(&rawtime);
+	//calculates commitments to rows of A
+	Functions::commit_op(A,r_A,c_A);
+
+	ofstream ost(name.c_str());
 	for (i=0; i<m; i++){
-		out_stream << c_A->at(i)<< " ";
+		ost << c_A->at(i)<< " ";
 	}
-	return out_stream.str();
+	return name;
 }
 
 //round_3, permuted the exponents in s,  picks random elements and commits to values
-string Prover_toom::round_3(const string& input){
+string Prover_toom::round_3(string in_name){
 	long i;
 	ZZ x2;
 	vector<vector<ZZ>* >* chal_x2 = new vector<vector<ZZ>* >(m);
 
-	stringstream ist(input);
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
+
+	//reads in values of s
+	ifstream ist(in_name.c_str());
+	if(!ist) cout<<"Can't open "<< in_name;
 	ist >> x2;
 
 	//creates a matrix with entries x2,..., x2^N
@@ -197,22 +209,26 @@ string Prover_toom::round_3(const string& input){
 	func_pro::set_B_op(B, basis_B, chal_x2, pi , omega_mulex);
 
 	//commits to the rows in B
-	Functions::commit_op(B,r_B,c_B, ped_);
+	Functions::commit_op(B,r_B,c_B);
+
+	name = "round_3 ";
+	name = name + ctime(&rawtime);
 
 	//write data in the file name
-	stringstream out_stream;
+	ofstream ost(name.c_str());
 	for (i=0; i<m;i++){
-		out_stream << c_B->at(i) <<" ";
+		ost << c_B->at(i) <<" ";
 	}
 
 	Functions::delete_vector(chal_x2);
-	return out_stream.str();
+	return name;
 }
 
 
 //round_5a calculates D and the commitments to the vectors chal_z, D_h
 void Prover_toom::round_5a(){
 	long i;
+	ZZ temp, t; //temporary variables
 	vector<ZZ>* r = new vector<ZZ>(n);
 	vector<ZZ>* v_z = new vector<ZZ>(n); //row containing the challenge alpha
 	ZZ ord = H.get_ord();
@@ -225,15 +241,9 @@ void Prover_toom::round_5a(){
 	//Set the matrix D_h as the Hadamard product of the rows in D
 	func_pro::set_D_h(D_h, D);
 
-	const ZZ one = to_ZZ(1);
-
-	{
-        //PARALLELIZE
-        #pragma omp parallel for num_threads(num_threads) if(parallel)
-		for( i=0; i<n;i++){
-			v_z->at(i) = chal_z4; //fills the vector alpha with the challenge alpha
-			NegateMod(r->at(i), one, ord);
-		}
+	for( i=0; i<n;i++){
+		v_z->at(i) = chal_z4; //fills the vector alpha with the challenge alpha
+		NegateMod(r->at(i),to_ZZ(1),ord);
 	}
 
 	//Sets the additional row in D to contain -1
@@ -242,9 +252,9 @@ void Prover_toom::round_5a(){
 	r_A->at(m) = 0;
 
 	//calculate commitment to alpha
-	Functions::commit_op(v_z, r_z, c_z, ped_);
+	Functions::commit_op(v_z, r_z, c_z);
 	//calculate commitment to the rows in D_h
-	Functions::commit_op(D_h,r_D_h,c_D_h, ped_);
+	Functions::commit_op(D_h,r_D_h,c_D_h);
 
 	delete v_z;
 }
@@ -254,20 +264,28 @@ void Prover_toom::round_5b(){
 	func_pro::set_Rb(B, R, R_b);
 	commit_ac();
 	calculate_Cc(C,basis_B);
+
 }
 
-string Prover_toom::round_5(const string& input){
+string Prover_toom::round_5(string in_name ){
 	long i;
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
 
 	//reads the values out of the file
-	stringstream ist(input);
+	ifstream ist(in_name.c_str());
+	if(!ist) cout<<"Can't open "<< in_name;
 	ist>>chal_z4;
 	ist >> chal_y4;
-	
+
 	round_5a();
 	round_5b();
+	//Set name of the output file and open stream
+	name = "round_5 ";
+	name = name + ctime(&rawtime);
 
-	stringstream ost;
+	ofstream ost(name.c_str());
 	//writes the commitments in the file
 	ost<<  c_z<< "\n";
 	for (i = 0; i<m ; i++){
@@ -282,21 +300,30 @@ string Prover_toom::round_5(const string& input){
 	for(i=0; i<mu_h; i++){
 		ost<<c_a_c->at(i)<<" ";
 	}
-	return ost.str();
+	return name;
 }
 
-string Prover_toom::round_5_red(const string& input){
+string Prover_toom::round_5_red(string in_name){
 	long i;
-	
-	stringstream ist(input);
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
+
+	//reads the values out of the file
+	ifstream ist(in_name.c_str());
+	if(!ist) cout<<"Can't open "<< in_name;
 	ist>>chal_z4;
 	ist >> chal_y4;
 
 	func_pro::set_Rb(B,R,R_b);
 	commit_ac();
+
 	calculate_Cc(C,basis_B);
 
-	stringstream ost;
+	name = "round_5_red ";
+	name = name + ctime(&rawtime);
+
+	ofstream ost(name.c_str());
 	for(i=0; i<mu_h; i++){
 		ost<<C_c->at(i)<<" ";
 	}
@@ -304,15 +331,22 @@ string Prover_toom::round_5_red(const string& input){
 	for(i=0; i<mu_h; i++){
 		ost<<c_a_c->at(i)<<" ";
 	}
-	return ost.str();
+	return name;
 
 }
 
-string Prover_toom::round_5_red1(const string& input){
+string Prover_toom::round_5_red1(string in_name){
 	long i;
-	stringstream ist(input);
+	double tstart, tstop;
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
+
 	x = new vector<ZZ>(mu_h);
 
+	//reads the values out of the file
+	ifstream ist(in_name.c_str());
+	if(!ist) cout<<"Can't open "<< in_name;
 	//reads challenges x
 	for(i=0; i<mu_h; i++){
 		ist>> x->at(i);
@@ -326,10 +360,10 @@ string Prover_toom::round_5_red1(const string& input){
 	calculate_r_ac_bar(x);
 
 	//reduction from m rows to m_r rows
-	auto tstart= high_resolution_clock::now();
-	reduce_C(C, B, r_B, x, 4*m_r);
-	auto tstop = high_resolution_clock::now();
-	time_di = time_di+ duration<double>(tstop-tstart).count();
+	tstart= (double)clock()/CLOCKS_PER_SEC;
+		reduce_C(C, B, r_B, x, 4*m_r);
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di = time_di+tstop-tstart;
 
 	set_Rb1(x);
 	commit_ac();
@@ -337,7 +371,11 @@ string Prover_toom::round_5_red1(const string& input){
 
 	delete x;
 
-	stringstream ost;
+	//Set name of the output file and open stream
+	name = "round_5 ";
+	name = name + ctime(&rawtime);
+
+	ofstream ost(name.c_str());
 	//writes the commitments in the file
 	ost<<  c_z<< "\n";
 	for (i = 0; i<m ; i++){
@@ -353,7 +391,7 @@ string Prover_toom::round_5_red1(const string& input){
 	}
 	ost<<a_c_bar<<endl;
 	ost<<r_ac_bar<<endl;
-	return ost.str();
+	return name;
 }
 
 void Prover_toom::round_7a(){
@@ -362,19 +400,18 @@ void Prover_toom::round_7a(){
 	func_pro::set_D_s(D_s,D_h,D,chal_x6,r_Dl_bar);
 
 	//calculate the values Dls as Dl(l) = sum(D(i)*D_s->at(i)*chal_y6) for j=n+i-l and commits to the values
-	func_pro::commit_Dl_op(c_Dl,Dl, r_Dl, D, D_s, chal_y6, ped_);
+	func_pro::commit_Dl_op(c_Dl,Dl, r_Dl, D, D_s, chal_y6);
+
 
 	//commitments to D(0) and D_s(m)
-	Functions::commit_op(D->at(0),r_D0,c_D0, ped_);
-	
-	Functions::commit_op(D_s->at(m), r_Dm, c_Dm, ped_);
+	Functions::commit_op(D->at(0),r_D0,c_D0);
+	Functions::commit_op(D_s->at(m), r_Dm, c_Dm);
 
 	//commitments to prove that the product over the elements in D_h->at(m) is the desired product of n *y + x2n -z
-	func_pro::commit_d_op(d,r_d,c_d, ped_);
-	
-	func_pro::commit_Delta_op(Delta, d, r_Delta, c_Delta, ped_);
-	
-	func_pro::commit_d_h_op(D_h,d_h,d,Delta, r_d_h, c_d_h, ped_);
+	func_pro::commit_d_op(d,r_d,c_d);
+	func_pro::commit_Delta_op(Delta, d, r_Delta, c_Delta);
+	func_pro::commit_d_h_op(D_h,d_h,d,Delta, r_d_h, c_d_h);
+
 }
 
 void Prover_toom::round_7b(){
@@ -384,26 +421,22 @@ void Prover_toom::round_7b(){
 }
 
 void  Prover_toom::round_7c(){
+	double tstart, tstop;
 	vector<Cipher_elg>* e = 0;
 
-	auto tstart = high_resolution_clock::now();
+	tstart= (double)clock()/CLOCKS_PER_SEC;
 	reduce_C(C, B, r_B, chal_x6, m_r);
 	set_Rb1(chal_x6);
-	auto tstop = high_resolution_clock::now();
-	//cout << "7c: reduce_C " << duration<double>(tstop - tstart).count() << endl;
-	time_di = time_di+duration<double>(tstop - tstart).count();
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di = time_di+tstop-tstart;
 
-	tstart = high_resolution_clock::now();
-	func_pro::commit_a_op(a, r_a, c_a, ped_);
-	tstop = high_resolution_clock::now();
-	//cout << "7c: commit_a " << duration<double>(tstop - tstart).count() << endl;
-	func_pro::commit_B0_op(B_0, basis_B0, r_B0, c_B0, omega_mulex, ped_);
+	func_pro::commit_a_op(a, r_a, c_a);
+	func_pro::commit_B0_op(B_0, basis_B0, r_B0, c_B0, omega_mulex);
 
-	tstart = high_resolution_clock::now();
+	tstart = (double)clock()/CLOCKS_PER_SEC;
 	e = calculate_e();
-	tstop = high_resolution_clock::now();
-	//cout << "7c: e " << duration<double>(tstop - tstart).count() << endl;
-	time_di = time_di+duration<double>(tstop - tstart).count();
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di = time_di+tstop-tstart;
 	//cout<<"To calculate the di's took "<<time_di<<" sec."<<endl;
 
 	calculate_E(e);
@@ -414,11 +447,12 @@ void  Prover_toom::round_7c(){
 
 void  Prover_toom::round_7c_red(){
 	vector<Cipher_elg>* e = 0;
+	double tstart, tstop;
 	vector<vector<Cipher_elg>* >* C_small_temp = 0;
 	vector<vector<ZZ>* >* B_small_temp = 0;
 	vector<ZZ>* r_B_small_temp = 0;
 
-	auto tstart= high_resolution_clock::now();
+	tstart= (double)clock()/CLOCKS_PER_SEC;
 		C_small_temp = copy_C();
 		B_small_temp = copy_B();
 		r_B_small_temp = copy_r_B();
@@ -429,17 +463,17 @@ void  Prover_toom::round_7c_red(){
 
 		reduce_C(C_small_temp, B_small_temp, r_B_small_temp, chal_x6, m_r);
 		set_Rb1(chal_x6);
-	auto tstop = high_resolution_clock::now();
-	time_di = time_di+ duration<double>(tstop-tstart).count();
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di = time_di+tstop-tstart;
 
 
-	func_pro::commit_a_op(a,r_a,c_a, ped_);
-	func_pro::commit_B0_op(B_0, basis_B0, r_B0, c_B0, omega_mulex, ped_);
+	func_pro::commit_a_op(a,r_a,c_a);
+	func_pro::commit_B0_op(B_0, basis_B0, r_B0, c_B0, omega_mulex);
 
-	tstart = high_resolution_clock::now();
+	tstart = (double)clock()/CLOCKS_PER_SEC;
 	e= calculate_e();
-	tstop = high_resolution_clock::now();
-	time_di = time_di+duration<double>(tstop-tstart).count();
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di = time_di+tstop-tstart;
 	//cout<<"To calculate the di's took "<<time_di<<" sec."<<endl;
 
 	calculate_E(e);
@@ -451,10 +485,14 @@ void  Prover_toom::round_7c_red(){
 	delete e;
 }
 
-string Prover_toom::round_7(const string& input){
+string Prover_toom::round_7(string in_name){
 	long i,l;
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
 	//reads the values out of the file
-	stringstream ist(input);
+	ifstream ist(in_name.c_str());
+	if(!ist) cout<<"Can't open "<< in_name;
 	//reads the vector t_1
 	l=2*m;
 	for (i = 0; i<l; i++){
@@ -470,9 +508,10 @@ string Prover_toom::round_7(const string& input){
 	round_7c();
 
 	//Set name of the output file and open stream
+	name = "round_7 ";
+	name = name + ctime(&rawtime);
 
-	stringstream ost;
-	for (i = 0; i<=l ; i++) {
+	ofstream ost(name.c_str());	for (i = 0; i<=l ; i++){
 		ost << c_Dl ->at(i)<< " ";
 	}
 	ost << "\n";
@@ -494,13 +533,17 @@ string Prover_toom::round_7(const string& input){
 	ost<<"\n";
 
 
-	return ost.str();
+	return name;
 }
 
-string Prover_toom::round_7_red(const string& input){
+string Prover_toom::round_7_red(string in_name){
 	long i,l;
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
 	//reads the values out of the file
-	stringstream ist(input);
+	ifstream ist(in_name.c_str());
+	if(!ist) cout<<"Can't open "<< in_name;
 	//reads the vector t_1
 	l=2*m;
 	for (i = 0; i<l; i++){
@@ -516,8 +559,12 @@ string Prover_toom::round_7_red(const string& input){
 	round_7c_red();
 
 
+	//Set name of the output file and open stream
+	name = "round_7 ";
+	name = name + ctime(&rawtime);
 
-	stringstream ost;
+
+	ofstream ost(name.c_str());
 	for (i = 0; i<=l ; i++){
 		ost << c_Dl ->at(i)<< " ";
 	}
@@ -539,7 +586,7 @@ string Prover_toom::round_7_red(const string& input){
 		ost<<c_a->at(i)<<" ";
 	}
 	ost<<"\n";
-	return ost.str();
+	return name;
 }
 
 void Prover_toom::round_9a(){
@@ -590,13 +637,17 @@ void  Prover_toom::round_9c(){
 	func_pro::calculate_rho_a_bar(rho_a, chal_x8, rho_bar);
 }
 
-string Prover_toom::round_9(const string& input){
+string Prover_toom::round_9(string in_name){
 	long i;
 	long l = chal_x8->size();
+	ZZ tem;
+	string name;
+	time_t rawtime;
+	time ( &rawtime );
 
 	//reads the values out of the file
-	stringstream ist(input);
-
+	ifstream ist(in_name.c_str());
+	if(!ist) cout<<"Can't open "<< in_name;
 	//reads the vector e
 	for (i = 0; i<l ; i++){
 		ist >> chal_x8->at(i);
@@ -607,7 +658,10 @@ string Prover_toom::round_9(const string& input){
 	round_9c();
 
 	//Set name of the output file and open stream
-	stringstream ost;
+	name = "round_9 ";
+	name = name + ctime(&rawtime);
+
+	ofstream ost(name.c_str());
 
 	for (i = 0; i<n; i++){
 		ost << D_h_bar->at(i)<<" ";
@@ -656,15 +710,17 @@ string Prover_toom::round_9(const string& input){
 	ost<< rho_bar;
 	ost <<"\n";
 
-	return ost.str();
+	return name;
 }
+
+
 
 
 
 void Prover_toom::commit_ac(){
 	long i;
 	ZZ ord = H.get_ord();
-    //does not need parallelization
+
 	for(i= 0; i<mu_h; i++){
 		a_c->at(i) = RandomBnd(ord);
 		r_c->at(i) = RandomBnd(ord);
@@ -673,92 +729,68 @@ void Prover_toom::commit_ac(){
 	a_c->at(mu-1) = to_ZZ(0);
 	r_c->at(mu-1) = to_ZZ(0);
 	NegateMod(rho_c->at(mu-1),R_b, ord);
-
 	for(i= 0; i<mu_h; i++){
-		c_a_c->at(i) = ped_.commit_sw(a_c->at(i),r_c->at(i));
+		c_a_c->at(i) = Ped.commit_sw(a_c->at(i),r_c->at(i));
 	}
 
 }
 
-
 void Prover_toom::calculate_Cc(vector<vector<Cipher_elg>* >* C, vector<vector<vector<long>* >* >* B){
 	long i, j, l,k;
 	ZZ mod = H.get_mod();
-	CurvePoint gen = H.get_gen().get_val();
+	ZZ gen = H.get_gen().get_val();
 	Cipher_elg temp, temp_1;
-	CurvePoint t_1;
-    high_resolution_clock::time_point t1, t2;
+	ZZ t_1;
+	double tstart, tstop;
 
-    //cout << "mu " << mu << endl;
-    //cout << "mu_h " << mu_h << endl;
-    //cout << "m_r " << m_r << endl;
-    //cout << "omega_mulex " << omega_mulex << endl;
-	
-	const Cipher_elg one_enced(curve_zeropoint(),curve_zeropoint(),mod);
-	//int count = 0;
-	t1 = high_resolution_clock::now();
+	tstart = (double)clock()/CLOCKS_PER_SEC;
 	for(k=0; k<mu_h; k++){
-		temp = one_enced;
-		{
-		for(i=0; i<mu; i++) {
+		temp = Cipher_elg(1,1,mod);
+		for(i=0; i<mu; i++){
 			j=k+1-mu+i;
-			if((j>=0) & (j<mu)) {
-                //PARALLELIZE
-                #pragma omp parallel for num_threads(num_threads) if(parallel)
-				for(l=0; l<m_r; l++) {
-	                Cipher_elg c;
-	                multi_expo::expo_mult(c, C->at(4*l+i), B->at(4*l+j), omega_mulex);
-                    #pragma omp critical(Cc1)
-                    {
-	                    Cipher_elg::mult(temp, temp, c);
-                    }
+			if(j>=0 & j<mu){
+				for(l=0; l<m_r; l++){
+					multi_expo::expo_mult(temp_1, C->at(4*l+i), B->at(4*l+j), omega_mulex);
+					Cipher_elg::mult(temp, temp, temp_1);
 				}
 			}
 		}
-		}
 		PowerMod(t_1, gen, a_c->at(k), mod);
-		temp_1 = elgammal_->encrypt(t_1, rho_c->at(k));
+		temp_1 = El.encrypt(t_1, rho_c->at(k));
 		Cipher_elg::mult(C_c->at(k),temp, temp_1);
 	}
-	t2 = high_resolution_clock::now();
-    //duration<double> par1 = duration_cast<duration<double>>(t2-t1);
-    //cout << "Calculate_Cc par 1 " << par1.count() << endl;
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di=0;
+	time_di = time_di + (tstop-tstart);
 }
 
 void Prover_toom::calculate_Cc(vector<vector<Cipher_elg>* >* C, vector<vector<ZZ>* >* B){
 	long i, j, l,k;
 	ZZ mod = H.get_mod();
-	CurvePoint gen = H.get_gen().get_val();
+	ZZ gen = H.get_gen().get_val();
 	Cipher_elg temp, temp_1;
-	CurvePoint t_1;
-    high_resolution_clock::time_point t1, t2;
+	ZZ t_1;
+	double tstart, tstop;
 
-	t1 = high_resolution_clock::now();
+	tstart = (double)clock()/CLOCKS_PER_SEC;
 	for(k=0; k<mu_h; k++){
-		temp = Cipher_elg(curve_zeropoint(),curve_zeropoint(),mod);
-		{
+		temp = Cipher_elg(1,1,mod);
 		for(i=0; i<mu; i++){
 			j=k+1-mu+i;
-			if((j>=0) & (j<mu)){
-                //PARALLELIZE
-                #pragma omp parallel for private(temp_1) num_threads(num_threads) if(parallel)
+			if(j>=0 & j<mu){
 				for(l=0; l<m_r; l++){
 					multi_expo::expo_mult(temp_1, C->at(4*l+i), B->at(4*l+j), omega_mulex);
-                    #pragma omp critical(Cc2)
-                    {
-					    Cipher_elg::mult(temp, temp, temp_1);
-                    }
+					Cipher_elg::mult(temp, temp, temp_1);
 				}
 			}
 		}
-		}
 		PowerMod(t_1, gen, a_c->at(k), mod);
-		temp_1 = elgammal_->encrypt(t_1, rho_c->at(k));
+		temp_1 = El.encrypt(t_1, rho_c->at(k));
 		Cipher_elg::mult(C_c->at(k),temp, temp_1);
 	}
-	t2 = high_resolution_clock::now();
-    //duration<double> par1 = duration_cast<duration<double>>(t2-t1);
-    //cout << "Calculate_Cc par 2 " << par1.count() << endl;
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di=0;
+	time_di = time_di + (tstop-tstart);
 }
 
 
@@ -766,7 +798,7 @@ void Prover_toom::calculate_ac_bar(vector<ZZ>* x){
 	long i;
 	ZZ temp;
 	ZZ ord = H.get_ord();
-    //does not need parallelization
+
 	a_c_bar = a_c->at(0);
 	for(i=1; i<mu_h; i++){
 		MulMod(temp, a_c->at(i), x->at(i-1), ord);
@@ -778,7 +810,7 @@ void Prover_toom::calculate_r_ac_bar(vector<ZZ>* x){
 	long i;
 	ZZ temp;
 	ZZ ord = H.get_ord();
-    //does not need parallelization
+
 	r_ac_bar = r_c->at(0);
 	for(i=1; i<mu_h; i++){
 		MulMod(temp, r_c->at(i), x->at(i-1), ord);
@@ -786,59 +818,48 @@ void Prover_toom::calculate_r_ac_bar(vector<ZZ>* x){
 	}
 }
 
-
-static void __do_reduce_C_external(vector<vector<Cipher_elg>*>* C, vector<vector<ZZ>* >* B, vector<ZZ>* r_B, vector<vector<Cipher_elg>* >* C_small, vector<vector<ZZ>* >* B_small, vector<ZZ>* r_B_small, vector<ZZ>* x_temp, ZZ& ord, int omega_LL, long i, int n) {
-	ZZ temp, temp_1;
-	vector<Cipher_elg>* row_C;
-	vector<ZZ>* row_B;
-
-	row_C = new vector<Cipher_elg>(n);
-	row_B = new vector<ZZ>(n);
-	{
-        //PARALLELIZE
-        #pragma omp parallel for num_threads(num_threads) if(parallel)
-		for(long j=0; j<n; j++){
-	        ZZ temp, temp_1;
-	        multi_expo::multi_expo_LL(row_C->at(j), C->at(4*i)->at(j), C->at(4*i+1)->at(j),C->at(4*i+2)->at(j),C->at(4*i+3)->at(j), x_temp, omega_LL);
-	        temp = B->at(4*i)->at(j);
-	        MulMod(temp_1, B->at(4*i+1)->at(j), x_temp->at(2), ord);
-	        AddMod(temp, temp, temp_1, ord);
-	        MulMod(temp_1, B->at(4*i+2)->at(j), x_temp->at(1), ord);
-	        AddMod(temp, temp, temp_1, ord);
-	        MulMod(temp_1, B->at(4*i+3)->at(j), x_temp->at(0), ord);
-	        AddMod(temp, temp, temp_1, ord);
-	        row_B->at(j) = temp;
-		}
-	}
-	C_small->at(i)=row_C;
-	B_small->at(i)=row_B;
-	temp = r_B->at(4*i);
-	MulMod(temp_1, r_B->at(4*i+1), x_temp->at(2), ord);
-	AddMod(temp, temp, temp_1, ord);
-	MulMod(temp_1, r_B->at(4*i+2), x_temp->at(1), ord);
-	AddMod(temp, temp, temp_1, ord);
-	MulMod(temp_1, r_B->at(4*i+3), x_temp->at(0), ord);
-	AddMod(temp, temp, temp_1, ord);
-	r_B_small->at(i) = temp;
-}
-
 void Prover_toom::reduce_C(vector<vector<Cipher_elg>*>* C, vector<vector<ZZ>* >* B, vector<ZZ>* r_B, vector<ZZ>* x, long length){
+	long i, j;
+	ZZ temp, temp_1;
 	ZZ ord  = H.get_ord();
+	double tstart, tstop;
+	vector<Cipher_elg>* row_C=0;
+	vector<ZZ>* row_B=0;
 	vector<ZZ>* x_temp = new vector<ZZ>(4);
 
-	auto tstart= high_resolution_clock::now();
+	tstart= (double)clock()/CLOCKS_PER_SEC;
 	x_temp->at(3)=1;
 	x_temp->at(2)= x->at(0);
 	x_temp->at(1) = x->at(1);
 	x_temp->at(0)= x->at(2);
 
-	{
-		for(long i=0; i<length;i++){
-			__do_reduce_C_external(C, B, r_B, C_small, B_small, r_B_small, x_temp, ord, omega_LL, i, n);
+	for(i=0; i<length;i++){
+		row_C = new vector<Cipher_elg>(n);
+		row_B = new vector<ZZ>(n);
+		for(j=0; j<n; j++){
+			multi_expo::multi_expo_LL(row_C->at(j), C->at(4*i)->at(j), C->at(4*i+1)->at(j),C->at(4*i+2)->at(j),C->at(4*i+3)->at(j), x_temp, omega_LL);
+			temp = B->at(4*i)->at(j);
+			MulMod(temp_1, B->at(4*i+1)->at(j), x_temp->at(2), ord);
+			AddMod(temp, temp, temp_1, ord);
+			MulMod(temp_1, B->at(4*i+2)->at(j), x_temp->at(1), ord);
+			AddMod(temp, temp, temp_1, ord);
+			MulMod(temp_1, B->at(4*i+3)->at(j), x_temp->at(0), ord);
+			AddMod(temp, temp, temp_1, ord);
+			row_B->at(j) = temp;
 		}
+		C_small->at(i)=row_C;
+		B_small->at(i)=row_B;
+		temp = r_B->at(4*i);
+		MulMod(temp_1, r_B->at(4*i+1), x_temp->at(2), ord);
+		AddMod(temp, temp, temp_1, ord);
+		MulMod(temp_1, r_B->at(4*i+2), x_temp->at(1), ord);
+		AddMod(temp, temp, temp_1, ord);
+		MulMod(temp_1, r_B->at(4*i+3), x_temp->at(0), ord);
+		AddMod(temp, temp, temp_1, ord);
+		r_B_small->at(i) = temp;
 	}
-	auto tstop = high_resolution_clock::now();
-	time_di = time_di + duration<double>(tstop-tstart).count();
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	time_di = time_di + (tstop-tstart);
 	delete x_temp;
 }
 
@@ -846,7 +867,7 @@ void Prover_toom::set_Rb1(vector<ZZ>* x){
 	long i;
 	ZZ temp;
 	ZZ ord = H.get_ord();
-    //does not need parallelization
+
 	R_b = rho_c->at(0);
 	for(i=1; i<mu_h; i++){
 		MulMod(temp, rho_c->at(i), x->at(i-1), ord);
@@ -855,35 +876,25 @@ void Prover_toom::set_Rb1(vector<ZZ>* x){
 }
 
 
-
 vector<Cipher_elg>* Prover_toom::calculate_e(){
 	long k,l;
 	Cipher_elg temp;
+	ZZ ord = H.get_ord();
+	ZZ mod = H.get_mod();
 	vector<Cipher_elg>* dt = 0;
 	vector<Cipher_elg>* e = new vector<Cipher_elg>(2*m);
-    //high_resolution_clock::time_point t1, t2;
-	
+
 	dt = toom4_pow(C_small, B_small);
-	    //PARALLELIZE	
-	    //t1 = high_resolution_clock::now();
-        #pragma omp parallel for private(temp) num_threads(num_threads) if(parallel)
-		for (k =0; k<mu; k++){
-			if (k == 0) {
-				multi_expo::expo_mult(e->at(0),C_small->at(mu-1), basis_B0, omega_mulex);
-			} else {
-				multi_expo::expo_mult(temp , C_small->at(mu-k-1), basis_B0, omega_mulex);
-				Cipher_elg::mult(e->at(k) ,temp,dt->at(2*mu-k-1));
-			}
-		}
-        //t2 = high_resolution_clock::now();
+
+	multi_expo::expo_mult(e->at(0),C_small->at(mu-1), basis_B0, omega_mulex);
+	for (k =1; k<mu; k++){
+		multi_expo::expo_mult(temp , C_small->at(mu-k-1), basis_B0, omega_mulex);
+		Cipher_elg::mult(e->at(k) ,temp,dt->at(2*mu-k-1));
+	}
 	l=2*mu;
-    #pragma omp parallel for num_threads(num_threads) if(parallel)
 	for (k = mu; k<l; k++){
 		e->at(k) = dt->at(2*mu-k-1);
 	}
-
-    //duration<double> par1 = duration_cast<duration<double>>(t2-t1);
-    //cout << "Calculate_e par 1 " << par1.count() << endl;
 
 	delete dt;
 	return e;
@@ -894,7 +905,7 @@ void Prover_toom::calculate_E(vector<Cipher_elg>* e){
 	Mod_p t;
 	Mod_p gen = H.get_gen();
 	ZZ ord = H.get_ord();
-    //does not need parallelism
+
 	l=2*mu;
 	for (i = 0; i<l; i++){
 		rho_a->at(i)= RandomBnd(ord);
@@ -902,7 +913,7 @@ void Prover_toom::calculate_E(vector<Cipher_elg>* e){
 	rho_a->at(mu)=R_b ;
 	for (i = 0; i<l; i++){
 		 t = gen.expo(a->at(i));
-		 E->at(i) = elgammal_->encrypt(t,rho_a->at(i))*e->at(i);
+		 E->at(i) = El.encrypt(t,rho_a->at(i))*e->at(i);
 	}
 }
 
@@ -972,7 +983,7 @@ vector<vector<ZZ>*>* Prover_toom::evulation(vector<vector<ZZ>*>* p){
 	l= p->at(0)->size();
 	ord = H.get_ord();
 	ret = new vector<vector<ZZ>*>(l);
-    //does not need parallelization
+
 	for(i = 0; i<l; i++){
 		row = new vector<ZZ>(7);
 			AddMod(p0,p->at(2)->at(i), p->at(0)->at(i),ord);
@@ -1001,25 +1012,25 @@ vector<vector<ZZ>*>* Prover_toom::evulation(vector<vector<ZZ>*>* p){
 }
 
 
-vector<vector<vector<CurvePoint>*>*>* Prover_toom::evulation_pow(vector<vector<Cipher_elg>*>* p){
-	vector<vector<vector<CurvePoint>*>*>* ret;
-	vector<vector<CurvePoint>* >* ret_u;
-	vector<vector<CurvePoint>* >* ret_v;
-	vector<CurvePoint>* row_u;
-	vector<CurvePoint>* row_v;
-	CurvePoint p0_u,p1_u,p2_u,p3_u,temp_u, temp_1_u;
-	CurvePoint p0_v,p1_v,p2_v,p3_v,temp_v, temp_1_v;
+vector<vector<vector<ZZ>*>*>* Prover_toom::evulation_pow(vector<vector<Cipher_elg>*>* p){
+	vector<vector<vector<ZZ>*>*>* ret;
+	vector<vector<ZZ>* >* ret_u;
+	vector<vector<ZZ>* >* ret_v;
+	vector<ZZ>* row_u;
+	vector<ZZ>* row_v;
+	ZZ p0_u,p1_u,p2_u,p3_u,temp_u, temp_1_u;
+	ZZ p0_v,p1_v,p2_v,p3_v,temp_v, temp_1_v;
 	ZZ mod = H.get_mod();
 	long l, i;
 	l = p->at(0)->size();
 
-	ret = new vector<vector<vector<CurvePoint>*>*>(2);
-	ret_u = new vector<vector<CurvePoint>*>(l);
-	ret_v = new vector<vector<CurvePoint>*>(l);
-    //does not need parallelization
+	ret = new vector<vector<vector<ZZ>*>*>(2);
+	ret_u = new vector<vector<ZZ>*>(l);
+	ret_v = new vector<vector<ZZ>*>(l);
+
 	for(i = 0; i<l; i++){
-		row_u = new vector<CurvePoint>(7);
-		row_v = new vector<CurvePoint>(7);
+		row_u = new vector<ZZ>(7);
+		row_v = new vector<ZZ>(7);
 		MulMod(p0_u,p->at(1)->at(i).get_u(), p->at(3)->at(i).get_u(),mod);
 		MulMod(p0_v,p->at(1)->at(i).get_v(), p->at(3)->at(i).get_v(),mod);
 		MulMod(p1_u ,p->at(0) ->at(i).get_u(), p->at(2)->at(i).get_u(), mod);
@@ -1068,45 +1079,35 @@ vector<vector<vector<CurvePoint>*>*>* Prover_toom::evulation_pow(vector<vector<C
 		ret_u->at(i) = row_u;
 		ret_v->at(i) = row_v;
 	}
-
 	ret->at(0) = ret_u;
 	ret->at(1) = ret_v;
 	return ret;
 }
 
-vector<vector<vector<CurvePoint>*>*>* Prover_toom::point_pow(vector<vector<vector<CurvePoint>*>*>* points_p, vector<vector<ZZ>*>* points_q){
-	long i,l;
-	vector<vector<vector<CurvePoint>*>*>* ret;
-	vector<vector<CurvePoint>*>* ret_u;
-	vector<vector<CurvePoint>*>* ret_v;
-	//vector<ZZ>* row_u;
-	//vector<ZZ>* row_v;
+vector<vector<vector<ZZ>*>*>* Prover_toom::point_pow(vector<vector<vector<ZZ>*>*>* points_p, vector<vector<ZZ>*>* points_q){
+	long i,j,l;
+	vector<vector<vector<ZZ>*>*>* ret;
+	vector<vector<ZZ>*>* ret_u;
+	vector<vector<ZZ>*>* ret_v;
+	vector<ZZ>* row_u;
+	vector<ZZ>* row_v;
 	ZZ mod = H.get_mod();
 	l = points_p->at(0)->size();
 
-    high_resolution_clock::time_point t1, t2, t3, t4;
+	ret = new vector<vector<vector<ZZ>*>*>(2);
+	ret_u = new vector<vector<ZZ>*>(l);
+	ret_v = new vector<vector<ZZ>*>(l);
+	for(j = 0; j<l; j++){
+		row_u = new vector<ZZ>(7);
+		row_v = new vector<ZZ>(7);
+		for(i=0; i<7; i++){
+			PowerMod(row_u->at(i) , points_p->at(0)->at(j)->at(i), points_q->at(j)->at(i),mod);
+			PowerMod(row_v->at(i) , points_p->at(1)->at(j)->at(i), points_q->at(j)->at(i),mod);
 
-	ret = new vector<vector<vector<CurvePoint>*>*>(2);
-	ret_u = new vector<vector<CurvePoint>*>(l);
-	ret_v = new vector<vector<CurvePoint>*>(l);
-
-    
-	for (long j = 0; j < l; j++) {
-		ret_u->at(j) = new vector<CurvePoint>(7);
-		ret_v->at(j) = new vector<CurvePoint>(7);
-	}
-	
-	{
-        //PARALLELIZE
-        #pragma omp parallel for collapse(2) num_threads(num_threads) if(parallel)
-		for(long j = 0; j<l; j++){
-			for(i=0; i<7; i++){
-				PowerMod(ret_u->at(j)->at(i), points_p->at(0)->at(j)->at(i), points_q->at(j)->at(i),mod);
-                PowerMod(ret_v->at(j)->at(i), points_p->at(1)->at(j)->at(i), points_q->at(j)->at(i),mod);
-			}
 		}
+		ret_u->at(j) = row_u;
+		ret_v->at(j) = row_v;
 	}
-	
 	ret->at(0)= ret_u;
 	ret->at(1) = ret_v;
 	for(i = 0; i< l ; i++){
@@ -1123,23 +1124,22 @@ vector<vector<vector<CurvePoint>*>*>* Prover_toom::point_pow(vector<vector<vecto
 		points_q->at(i)=0;
 	}
 	delete points_q;
-
 	return ret;
 }
 
 
-vector<vector<CurvePoint>*>* Prover_toom::mult_points(vector<vector<vector<CurvePoint>* >*>* points){
+vector<vector<ZZ>*>* Prover_toom::mult_points(vector<vector<vector<ZZ>* >*>* points){
 	long i,l,j;
-	vector<vector<CurvePoint>*>* ret = new vector<vector<CurvePoint>*>(2);
-	vector<CurvePoint>* ret_u = new vector<CurvePoint>(7);
-	vector<CurvePoint>* ret_v = new vector<CurvePoint>(7);
+	vector<vector<ZZ>*>* ret = new vector<vector<ZZ>*>(2);
+	vector<ZZ>* ret_u = new vector<ZZ>(7);
+	vector<ZZ>* ret_v = new vector<ZZ>(7);
 	l = points->at(0)->size();
-	CurvePoint temp_u, temp_v;
+	ZZ temp_u, temp_v;
 	ZZ mod = H.get_mod();
-    //does not need parallelization
+
 	for(i = 0; i<7; i++){
-		temp_u = curve_zeropoint();
-		temp_v = curve_zeropoint();
+		temp_u = 1;
+		temp_v = 1;
 		for(j = 0; j<l; j++){
 			MulMod(temp_u, temp_u, points->at(0)->at(j)->at(i),mod);
 			MulMod(temp_v, temp_v, points->at(1)->at(j)->at(i),mod);
@@ -1163,10 +1163,9 @@ vector<vector<CurvePoint>*>* Prover_toom::mult_points(vector<vector<vector<Curve
 	return ret;
 }
 
-vector<CurvePoint>* Prover_toom::interpolation_pow(vector<CurvePoint>* points){
-	vector<CurvePoint>* ret = new vector<CurvePoint>(7);
-	CurvePoint r1,r2,r3,r4,r5,r6,r7,temp_pt;
-        ZZ temp_zz;
+vector<ZZ>* Prover_toom::interpolation_pow(vector<ZZ>* points){
+	vector<ZZ>* ret = new vector<ZZ>(7);
+	ZZ r1,r2,r3,r4,r5,r6,r7,temp;
 	ZZ ord = H.get_ord();
 	ZZ mod = H.get_mod();
 
@@ -1179,55 +1178,55 @@ vector<CurvePoint>* Prover_toom::interpolation_pow(vector<CurvePoint>* points){
 	r7 = points->at(6);
 
 	MulMod(r2 ,r2, r5, mod);
-	InvMod(temp_pt,r5,mod);
-	MulMod(r6 , r6,temp_pt, mod);
-	InvMod(temp_pt, r3, mod);
-	MulMod(r4 , r4,temp_pt,mod);
-	InvMod(temp_pt, r1, mod);
-	MulMod(r5,r5,temp_pt,mod);
-	PowerMod(temp_pt, r7, 64,mod);
-	InvMod(temp_pt, temp_pt, mod);
-	MulMod(r5, r5,temp_pt,mod);
-	InvMod(temp_zz,to_ZZ(2),ord);
-	PowerMod(r4,r4,temp_zz,mod);
+	InvMod(temp,r5,mod);
+	MulMod(r6 , r6,temp, mod);
+	InvMod(temp, r3, mod);
+	MulMod(r4 , r4,temp,mod);
+	InvMod(temp, r1, mod);
+	MulMod(r5,r5,temp,mod);
+	PowerMod(temp, r7, 64,mod);
+	InvMod(temp, temp, mod);
+	MulMod(r5, r5,temp,mod);
+	InvMod(temp,to_ZZ(2),ord);
+	PowerMod(r4,r4,temp,mod);
 	MulMod(r3, r3,r4,mod);
-	PowerMod(temp_pt, r5,2, mod);
-	MulMod(r5 , temp_pt , r6,mod);
+	PowerMod(temp, r5,2, mod);
+	MulMod(r5 , temp , r6,mod);
 
-	PowerMod(temp_pt, r3, 65,mod);
-	InvMod(temp_pt, temp_pt, mod);
-	MulMod(r2 , r2,temp_pt,mod);
-	InvMod(r4 ,r4,mod);
-	InvMod(r6 , r6,mod);
-	InvMod(temp_pt, r7, mod);
-	MulMod(r3, r3, temp_pt,mod);
-	InvMod(temp_pt, r1, mod);
-	MulMod(r3 , r3,temp_pt,mod);
-	PowerMod(temp_pt, r3, 45, mod);
-	MulMod(r2 , r2,temp_pt,mod);
-	PowerMod(temp_pt, r3, 8, mod);
-	InvMod(temp_pt, temp_pt, mod);
-	MulMod(r5 , r5,temp_pt,mod);
+	PowerMod(temp, r3, 65,mod);
+	InvMod(temp, temp, mod);
+	MulMod(r2 , r2,temp,mod);
+	PowerMod(r4 ,r4,-1,mod);
+	PowerMod(r6 , r6,-1,mod);
+	InvMod(temp, r7, mod);
+	MulMod(r3, r3, temp,mod);
+	InvMod(temp, r1, mod);
+	MulMod(r3 , r3,temp,mod);
+	PowerMod(temp, r3, 45, mod);
+	MulMod(r2 , r2,temp,mod);
+	PowerMod(temp, r3, 8, mod);
+	InvMod(temp, temp, mod);
+	MulMod(r5 , r5,temp,mod);
 
-	InvMod(temp_zz,to_ZZ(24),ord);
-	PowerMod(r5 , r5,temp_zz, mod);
-	InvMod(temp_pt, r2, mod);
-	MulMod(r6 , r6,temp_pt,mod);
-	PowerMod(temp_pt, r4, 16, mod);
-	InvMod(temp_pt, temp_pt, mod);
-	MulMod(r2 , r2,temp_pt,mod);
-	InvMod(temp_zz,to_ZZ(18), ord);
-	PowerMod(r2 ,r2, temp_zz, mod);
-	InvMod(temp_pt, r5, mod);
-	MulMod(r3 , r3,temp_pt,mod);
-	InvMod(temp_pt, r2, mod);
-	MulMod(r4, r4,temp_pt,mod);
-	PowerMod(temp_pt, r2, 30, mod);
-	MulMod(r6 , r6,temp_pt,mod);
-	InvMod(temp_zz, to_ZZ(60), ord);
-	PowerMod(r6,  r6, temp_zz, mod);
-	InvMod(temp_pt, r6, mod);
-	MulMod(r2 , r2 ,temp_pt,mod);
+	InvMod(temp,to_ZZ(24),ord);
+	PowerMod(r5 , r5,temp, mod);
+	InvMod(temp, r2, mod);
+	MulMod(r6 , r6,temp,mod);
+	PowerMod(temp, r4, 16, mod);
+	InvMod(temp, temp, mod);
+	MulMod(r2 , r2,temp,mod);
+	InvMod(temp,to_ZZ(18), ord);
+	PowerMod(r2 ,r2, temp, mod);
+	InvMod(temp, r5, mod);
+	MulMod(r3 , r3,temp,mod);
+	InvMod(temp, r2, mod);
+	MulMod(r4, r4,temp,mod);
+	PowerMod(temp, r2, 30, mod);
+	MulMod(r6 , r6,temp,mod);
+	InvMod(temp, to_ZZ(60), ord);
+	PowerMod(r6,  r6, temp, mod);
+	InvMod(temp, r6, mod);
+	MulMod(r2 , r2 ,temp,mod);
 
 	ret->at(0)= r1;
 	ret->at(1) = r2;
@@ -1240,31 +1239,23 @@ vector<CurvePoint>* Prover_toom::interpolation_pow(vector<CurvePoint>* points){
 	return ret;
 }
 
-// p is a list of points, q is a list of scalars
+
 vector<Cipher_elg>* Prover_toom::toom4_pow(vector<vector<Cipher_elg>*>* p, vector<vector<ZZ>*>* q){
-	vector<vector<vector<CurvePoint>*>*>* points_p;
+	vector<vector<vector<ZZ>*>*>* points_p;
 	vector<vector<ZZ>*>* points_q;
-	vector<vector<vector<CurvePoint>*>*>* points_temp;
-	vector<vector<CurvePoint>*>* points;
-	vector<CurvePoint>* ret_u;
-	vector<CurvePoint>* ret_v;
+	vector<vector<vector<ZZ>*>*>* points_temp;
+	vector<vector<ZZ>*>* points;
+	vector<ZZ>* ret_u;
+	vector<ZZ>* ret_v;
 	vector<Cipher_elg>* ret = new vector<Cipher_elg>(7);
 	long i,l;
 	ZZ mod = H.get_mod();
-	//auto begin= high_resolution_clock::now();
 	points_p = evulation_pow(p);
 	points_q = evulation(q);
 	points_temp = point_pow(points_p, points_q);
-	//auto tstart= high_resolution_clock::now();
-	//cout << "toom4, begin: " << duration<double>(tstart - begin).count() << endl;
-
 	points = mult_points(points_temp);
 	ret_u = interpolation_pow(points->at(0));
-	//auto tstart2= high_resolution_clock::now();
-	//cout << "interpolation1 time " << duration<double>(tstart2 - tstart).count() << endl;
 	ret_v = interpolation_pow(points->at(1));
-	//auto end= high_resolution_clock::now();
-	//cout << "interpolation2 time " << duration<double>(end - tstart2).count() << endl;
 	l = points->size();
 	for(i = 0; i<l; i++){
 		delete points->at(i);

@@ -1,12 +1,12 @@
 /*
- * Verifier_toom.h
+ * Verifier_me.h
  *
- *  Created on: 25.04.2011
+ *  Created on: 16.02.2011
  *      Author: stephaniebayer
  */
 
-#ifndef VERIFIER_TOOM_H_
-#define VERIFIER_TOOM_H_
+#ifndef VERIFIER_ME_H_
+#define VERIFIER_ME_H_
 
 #include <vector>
 #include <map>
@@ -18,22 +18,17 @@
 #include <NTL/ZZ.h>
 NTL_CLIENT
 
-
-class Verifier_toom {
+class Verifier_me {
 private:
-	vector<vector<Cipher_elg>* >* c; // Initial cyphertexts(non-interactive)
-	vector<vector<Cipher_elg>* >* C; // Reencrypted cyphertexts(ditto)
-	long n,m, N; // User input, defines the dimensions of the matrix used in the protocol, m rows, n columns, N ciphertexts
+	long n,m; // User input, defines the dimensions of the matrix used in the protocol, m rows, n columns
 	long omega; //window size for multi-exponentiation technique
-	long omega_sw; //window size for multi-exponentiation technique sliding window and LL
-	long omega_LL; //window size for multi-exponentiation technique of LL
+	long omega_sw; //window size for multi-exponentiation technique sliding window
+	long omega_LL; //window size for multi-exponentiation technique of Lim and Lee
+
 
 	vector<Mod_p>* c_A; //Commitments to the rows of A send from the prover in round 1
 	Mod_p c_D0; //commitment to the 0-th row in D
 	vector<Mod_p>* c_B; //Commitments to the rows of permuted exponents B send from the prover in round 3
-	vector<Mod_p>* c_B_small; //commitments after reduction with challenges x
-	vector<vector<Cipher_elg>* >* C_small; //smaller matrix of ciphertexts constructed for interaction
-
 
 	ZZ chal_x2; //Challenges for round 2, exponents for permutation
 	ZZ chal_y4; // Challenges to prove the use of the permutation in the prove of ciphertexts
@@ -43,7 +38,6 @@ private:
 	vector<ZZ> * chal_x8; // Vector of Vandermode challenges x8, x8^2 ... in round 8
 	vector<vector<long>* >* basis_chal_x8; //Vector of basis_vec for multi-expo
 	vector<ZZ>* mul_chal_x8; //Vector of basis_vec for multi-expo
-	vector<ZZ>* x; //Vector of challenges for reduction
 
 	Mod_p c_z; //Commitments to the vector containing z
 
@@ -57,11 +51,8 @@ private:
 	Mod_p c_d; //commitment to vector d
 	Mod_p c_Delta; //commitment to vector Delta
 	Mod_p c_dh; // commitment to vector d_h
-	vector<Mod_p>* c_a_c; //vector containing values used to reencrypt the E_c
 
 	vector<Cipher_elg>* E; //reencrypted product of the diogonals of the matrix of ciphertexts
-	vector<Cipher_elg>* C_c; //Ciphertexts to prove correctness of reduction
-
 	vector<ZZ>* D_h_bar;//Sum over the row in D_h multiplied by chal^i
 	ZZ r_Dh_bar;// sum over the random elements used for commiments to D_h
 
@@ -69,6 +60,7 @@ private:
 	vector<ZZ>* Delta_bar;//chal_x8*d_h+Delta
 	ZZ r_d_bar; //chal_x8*r_Dh(m-1)+r_d
 	ZZ r_Delta_bar; //chal_x8*r_dh +r_Delta
+
 
 	vector<ZZ>* B_bar; // sum over the rows in B multiplied by chal^i
 	ZZ a_bar; //sum over the elements in a times chal^i
@@ -83,19 +75,10 @@ private:
 	ZZ r_Ds_bar; //sum over the random elements in r_Ds times the challenges
 	ZZ r_Dl_bar; //sum over the random elements in r_Dl times the challenges
 
-
-	ZZ a_c_bar; //sum over elements to reencrypt E_low_up
-	ZZ r_ac_bar; // sum over random elements
-/*	ZZ F_c; //sum over elements to reencrypt E_low_up
-	ZZ Z_c; // sum over random elements
-	ZZ zeta_c; //sum over random elements rho_c*/
-
 public:
-	Verifier_toom();
-	Verifier_toom(vector<vector<Cipher_elg>* >* c,
-			vector<vector<Cipher_elg>* >*C,
-			map<string, long> num);
-	virtual ~Verifier_toom();
+	Verifier_me();
+	Verifier_me(map<string, long> num);
+	virtual ~Verifier_me();
 
 	//Stores the commitments to matrix Y and sends challenges vector s_1 and s_2 to the prover
 	string round_2(string name);
@@ -103,29 +86,12 @@ public:
 	string round_4(string name);
 	//round_6 outputs the challenge t, t^2,..
 	string round_6(string name);
-	//first round for reductions, outputs challenges and
-	string round_6_red(string name, vector<vector<Cipher_elg>* >* enc);
-	//round_6_red_2 second round of reduction outputs the challenge t, t^2,..
-	string round_6_red1(string name);
 	//round 6 stores the output com of round 1 and outputs the challenges for round 7
 	string round_8(string name);
 	//round 8 stores the input and checks the first set of equation, if all is true return challenges e, else -1
 	ZZ round_10(string name, vector<vector<Cipher_elg>* >* e,vector<vector<Cipher_elg>* >* E);
-	ZZ round_10_red(string name, vector<vector<Cipher_elg>* >* e,vector<vector<Cipher_elg>* >* E);
+	ZZ round_12(string name);
 
-	void calculate_c(Cipher_elg& c, vector<vector<Cipher_elg>* >* enc);
-	void calculate_ac(Mod_p& com);
-	void reduce_c_B();
-	void calculate_C(Cipher_elg& C, vector<Cipher_elg>* E_c, vector<ZZ>* x);
-
-	int check_B();
-	int check_B_red();
-	int check_a();
-	int check_c(vector<vector<Cipher_elg>* >* enc);
-	int check_c_red();
-	int check_E(vector<vector<Cipher_elg>* >* E);
-	int check_E_red(vector<vector<Cipher_elg>* >* E);
-	int check_ac();
 };
 
-#endif /* VERIFIER_TOOM_H_ */
+#endif /* VERIFIER_ME_H_ */

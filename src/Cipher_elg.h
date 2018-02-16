@@ -13,29 +13,33 @@
 #define CIPHER_ELG_H_
 
 
-#include "FakeZZ.h"
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
 #include "Mod_p.h"
-#include "CurvePoint.h"
+
 
 class Cipher_elg {
 private:
-	CurvePoint u,v; //u,v represent u=g^r, v = y^r m, where r is random, y is the public key and m the message
+	ZZ u,v; //u,v represent u=g^r, v = y^r m, where r is random, y is the public key and m the message
 	ZZ mod; // modular values of the calculations in the cyclic group
 public:
 	//Constructors & Destructor
 	Cipher_elg();
-	Cipher_elg(CurvePoint u_val, CurvePoint v_val, ZZ mod);
+	Cipher_elg(long u_val, long v_val, long mod);
+	Cipher_elg(ZZ u_val, long v_val, long mod);
+	Cipher_elg(long u_val, ZZ v_val, long mod);
+	Cipher_elg(ZZ u_val, ZZ v_val, long mod);
+	Cipher_elg(long u_val, long v_val, ZZ mod);
+	Cipher_elg(ZZ u_val, long v_val, ZZ mod);
+	Cipher_elg(long u_val, ZZ v_val, ZZ mod);
+	Cipher_elg(ZZ u_val, ZZ v_val, ZZ mod);
 	Cipher_elg(Mod_p u_t, Mod_p v_t);
 	virtual ~Cipher_elg();
 
-        // added: explicit initializer
-	Cipher_elg(bool dummy);
-
 	//Access to the parameters
-	CurvePoint get_u() const;
-	CurvePoint get_v() const;
+	ZZ get_u() const;
+	ZZ get_v() const;
 	ZZ get_mod() const;
 
 	//Operators functionality
@@ -44,13 +48,18 @@ public:
 	bool operator ==(const Cipher_elg& b) const;
 
 	static void mult(Cipher_elg& a, const Cipher_elg& b, const Cipher_elg&  c);
+	static Cipher_elg expo(const Cipher_elg& el, const ZZ expo);
+	static Cipher_elg expo(const Cipher_elg& el, const int expo);
 	static void expo(Cipher_elg& e, const Cipher_elg& el, const ZZ expo);
+	static void expo(Cipher_elg& e, const Cipher_elg& el, const long expo);
+	static Cipher_elg inverse(const Cipher_elg& el);
+	static void inverse(Cipher_elg& e, const Cipher_elg& el);
 
 	//Output and Input
 	friend ostream& operator<<(ostream& os, const Cipher_elg el);
 	friend istream& operator >>(istream& is, Cipher_elg& el);
 
-	void print() const;
+
 };
 
 #endif /* CIPHER_ELG_H_ */

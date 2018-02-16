@@ -10,7 +10,7 @@
 #include <time.h>
 #include <vector>
 #include <fstream>
-#include "FakeZZ.h"
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
 
@@ -30,19 +30,21 @@ vector<long>* Permutation::permutation(long N){
 	long i, r, temp;
 	//vector containing the values 1 to N ordered
 	for (i=0; i<N; i++){
+
 		v->at(i)= i+1;
 	}
+	//new seed for the randomness
+	SetSeed(to_ZZ(time(0)));
 
 	//create N times a random number <N, calculates r = i+r%N and switchs the values v[i] and v[r]
 	for (i=0; i<N; i++){
+
 		r = RandomBnd(N);
 		temp = (*v)[i];
 		r=(i+r)%N;
 		v->at(i)=v->at(r);
 		v->at(r)=temp;
 	}
-
-	/*
 	string name = "permu.txt";
 	ofstream ost;
 	ost.open(name.c_str());
@@ -50,7 +52,6 @@ vector<long>* Permutation::permutation(long N){
 		ost<<v->at(i)<<" ";
 	}
 	ost.close();
-	*/
 	return v;
 
 }

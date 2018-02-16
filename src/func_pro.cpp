@@ -12,16 +12,18 @@
 #include "Functions.h"
 #include "ElGammal.h"
 #include "multi_expo.h"
+#include "fft.h"
 #include <stdio.h>
 #include <time.h>
 #include <vector>
 #include <fstream>
 
-#include "FakeZZ.h"
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
 extern G_q G;
 extern G_q H;
+extern Pedersen Ped;
 /*extern ElGammal El;
 extern double time_rw_p;
 extern double time_cm;
@@ -29,9 +31,14 @@ extern long mu;
 extern long mu_h;
 extern long m_r;*/
 
-func_pro::func_pro() {}
+func_pro::func_pro() {
+	// TODO Auto-generated constructor stub
 
-func_pro::~func_pro() {}
+}
+
+func_pro::~func_pro() {
+	// TODO Auto-generated destructor stub
+}
 
 
 //Generates a matrix, containing the values 1 to N ordered
@@ -167,6 +174,8 @@ void func_pro::set_D(vector<vector<ZZ>* >* D, vector<vector<ZZ>* >* A, vector<ve
 /*	ofstream ost;
 	ost.open(name.c_str(),ios::app);
 	ost<<"set vector D = yA_ij +B_ij "<<endl;*/
+
+
 	for (i= 0; i<m; i++){
 		row = new vector<ZZ>(n);
 		for (j = 0; j<n; j++){
@@ -183,7 +192,7 @@ void func_pro::set_D(vector<vector<ZZ>* >* D, vector<vector<ZZ>* >* A, vector<ve
 }
 
 void func_pro::set_D_h(vector<vector<ZZ>* >* D_h, vector<vector<ZZ>* >* D){
-	long i;
+	long i,j;
 	vector<ZZ>* row;
 	long m = D_h->size();
 	long n = D->at(0)->size();
@@ -210,7 +219,7 @@ void func_pro::set_D_h(vector<vector<ZZ>* >* D_h, vector<vector<ZZ>* >* D){
 
 }
 
-void func_pro::commit_B0_op(vector<ZZ>* B_0, vector<vector<long>* >* basis_B0, ZZ &r_B0, Mod_p &c_B0, long omega_mulex, Pedersen& ped){
+void func_pro::commit_B0_op(vector<ZZ>* B_0, vector<vector<long>* >* basis_B0, ZZ &r_B0, Mod_p &c_B0, long omega_mulex ){
 	long i,num_b;
 	ZZ ord= H.get_ord();
 	long n = B_0->size();
@@ -222,7 +231,28 @@ void func_pro::commit_B0_op(vector<ZZ>* B_0, vector<vector<long>* >* basis_B0, Z
 		basis_B0->at(i)= multi_expo::to_basis(B_0->at(i), num_b, omega_mulex);
 	}
 
-	c_B0 = ped.commit_opt(B_0, r_B0);
+	c_B0 = Ped.commit_opt(B_0, r_B0);
+
+}
+
+void func_pro::commit_B0(vector<ZZ>* B_0, ZZ &r_B0, Mod_p &c_B0 ){
+	long i;
+	ZZ ord= H.get_ord();
+	long n = B_0->size();
+
+	string name = "example.txt";
+/*	ofstream ost;
+	ost.open(name.c_str(),ios::app);
+	ost<<"r_B= row 0 for matrix B and commitment  "<<endl;*/
+	r_B0  =  RandomBnd(ord);
+//	ost<<r_B0<<" ,";
+	for (i = 0; i<n; i++){
+		B_0 ->at(i) = RandomBnd(ord);
+	//	ost<<B_0->at(i)<<" ";
+	}
+
+	c_B0 = Ped.commit(B_0, r_B0);
+//	ost<<", "<< c_B0<<endl;
 
 }
 
@@ -248,7 +278,7 @@ void func_pro::set_Rb(vector<vector<ZZ>* >* B, vector<vector<ZZ>*>* R, ZZ &R_b){
 }
 
 
-void func_pro::commit_a_op(vector<ZZ>* a, vector<ZZ>* r_a, vector<Mod_p>* c_a, Pedersen& ped){
+void func_pro::commit_a_op(vector<ZZ>* a, vector<ZZ>* r_a, vector<Mod_p>* c_a){
 	long i,l;
 	ZZ ord = H.get_ord();
 	long m = a->size()/2;
@@ -256,18 +286,49 @@ void func_pro::commit_a_op(vector<ZZ>* a, vector<ZZ>* r_a, vector<Mod_p>* c_a, P
 	for(i= 0; i<m; i++){
 		a->at(i) = RandomBnd(ord);
 		r_a->at(i) = RandomBnd(ord);
-		c_a->at(i) = ped.commit_sw(a->at(i),r_a->at(i));
+		c_a->at(i) = Ped.commit_sw(a->at(i),r_a->at(i));
 	}
 	a->at(m) = to_ZZ(0);
 	r_a->at(m) = to_ZZ(0);
-	c_a->at(m) = ped.commit_sw(a->at(m),r_a->at(m));
+	c_a->at(m) = Ped.commit_sw(a->at(m),r_a->at(m));
 	l= 2*m;
 	for(i= m+1; i<l; i++){
 		a->at(i) = RandomBnd(ord);
 		r_a->at(i) = RandomBnd(ord);
-		c_a->at(i) = ped.commit_sw(a->at(i),r_a->at(i));
+		c_a->at(i) = Ped.commit_sw(a->at(i),r_a->at(i));
 	}
 }
+
+
+void func_pro::commit_a(vector<ZZ>* a, vector<ZZ>* r_a, vector<Mod_p>* c_a){
+	long i, l;
+	ZZ ord = H.get_ord();
+	long m = a->size()/2;
+
+	string name = "example.txt";
+/*	ofstream ost;
+	ost.open(name.c_str(),ios::app);
+	ost<<"vector (for reencryption in round 5) a r_a c_a "<<endl;*/
+	for(i= 0; i<m; i++){
+		a->at(i) = RandomBnd(ord);
+		r_a->at(i) = RandomBnd(ord);
+		c_a->at(i) = Ped.commit(a->at(i),r_a->at(i));
+	//	ost<<a->at(i)<<" "<<r_a->at(i)<<" "<<c_a->at(i)<<endl;
+	}
+	a->at(m) = to_ZZ(0);
+	r_a->at(m) = to_ZZ(0);
+	c_a->at(m) = Ped.commit(a->at(m),r_a->at(m));
+	//ost<<a->at(m)<<" "<<r_a->at(m)<<" "<<c_a->at(m)<<endl;
+	l=2*m;
+	for(i= m+1; i<l; i++){
+		a->at(i) = RandomBnd(ord);
+		r_a->at(i) = RandomBnd(ord);
+		c_a->at(i) = Ped.commit(a->at(i),r_a->at(i));
+	//	ost<<a->at(i)<<" "<<r_a->at(i)<<" "<<c_a->at(i)<<endl;
+	}
+}
+
+
 
 void func_pro::set_D_s(vector<vector<ZZ>* >* D_s, vector<vector<ZZ>* >* D_h, vector<vector<ZZ>* >* D, vector<ZZ>* chal, ZZ & r_Dl_bar){
 	long i, j, l;
@@ -322,13 +383,15 @@ void func_pro::set_D_s(vector<vector<ZZ>* >* D_s, vector<vector<ZZ>* >* D_h, vec
 	ost<<endl;*/
 }
 
-void func_pro::commit_Dl_op(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_Dl, vector<vector<ZZ>* >* D, vector<vector<ZZ>* >* D_s, vector<ZZ>* chal, Pedersen& ped){
+void func_pro::commit_Dl_op(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_Dl, vector<vector<ZZ>* >* D, vector<vector<ZZ>* >* D_s, vector<ZZ>* chal){
 	long i,j,l, len;
 	ZZ temp;
 	ZZ ord = H.get_ord();
 	long m = D->size()-1;
+	double tstart, tstop, ttime;
 
 	//Calculate the D_l's
+	tstart = (double)clock()/CLOCKS_PER_SEC;
 	len = 2*m+1;
 	for (l=0; l<len; l++){
 		temp =0;
@@ -340,6 +403,9 @@ void func_pro::commit_Dl_op(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_D
 		}
 		Dl->at(l) = temp;
 	}
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	ttime= tstop-tstart;
+	//cout << "To calculate the Dl's took " << ttime << " second(s)." << endl;
 
 	//Commits to the Dls
 	for (i=0; i<len;i++){
@@ -348,12 +414,63 @@ void func_pro::commit_Dl_op(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_D
 	r_Dl->at(m+1)=0;
 
 	for(l = 0; l<len; l++){
-		c_Dl->at(l)= ped.commit_sw(Dl->at(l),r_Dl->at(l));
+		c_Dl->at(l)= Ped.commit_sw(Dl->at(l),r_Dl->at(l));
 	}
 
 }
 
-void func_pro::commit_d_op(vector<ZZ>* d, ZZ &r_d, Mod_p& c_d, Pedersen& ped){
+void func_pro::commit_Dl(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_Dl, vector<vector<ZZ>* >* D, vector<vector<ZZ>* >* D_s, vector<ZZ>* chal, ZZ rou){
+	long i,j,l, len;
+	ZZ temp, temp_1;
+	ZZ ord = H.get_ord();
+	long m = D->size()-1;
+	long n = D->at(0)->size();
+	double tstart, tstop, ttime;
+
+/*	string name = "example.txt";
+	ofstream ost;
+	ost.open(name.c_str(),ios::app);
+ost<<"The D_ls are "<<" ";*/
+	//Calculate the D_l's
+	tstart = (double)clock()/CLOCKS_PER_SEC;
+	len = 2*m+1;
+	for (l=0; l<len; l++){
+		temp =0;
+		for (i = 0; i<=m; i++){
+			j = m+i-l;
+			if ((j>=0) & (j<=m)){
+				AddMod(temp,temp,Functions::bilinearMap(D->at(i), D_s->at(j), chal), ord);
+			}
+		}
+		Dl->at(l) = temp;
+	//	ost<<temp<<" ";
+	}
+	tstop = (double)clock()/CLOCKS_PER_SEC;
+	ttime= tstop-tstart;
+	//cout << "To calculate the Dl's took " << ttime << " second(s)." << endl;
+
+	//Commits to the Dls
+//	ost<<endl;
+//	ost<<"random values to commit ";
+	for (i=0; i<len;i++){
+		r_Dl->at(i) =  RandomBnd(ord);
+	}
+	r_Dl->at(m+1)=0;
+/*	for(i=0; i<len; i++){
+
+		ost<<r_Dl->at(i)<<" ";
+	}
+ost<<endl;
+	ost<<"commitments to Dl ";*/
+	for(l = 0; l<len; l++){
+		c_Dl->at(l)= Ped.commit(Dl->at(l),r_Dl->at(l));
+	//	ost<<c_Dl->at(l)<<" ";
+	}
+	//ost<<endl;
+
+}
+
+void func_pro::commit_d_op(vector<ZZ>* d, ZZ &r_d, Mod_p& c_d){
 	long i;
 	ZZ ord = H.get_ord();
 	long n=d->size();
@@ -362,10 +479,27 @@ void func_pro::commit_d_op(vector<ZZ>* d, ZZ &r_d, Mod_p& c_d, Pedersen& ped){
 		d->at(i)=RandomBnd(ord);
 	}
 
-	Functions::commit_op(d, r_d, c_d, ped);
+	Functions::commit_op(d, r_d, c_d);
 }
 
-void func_pro::commit_Delta_op(vector<ZZ>* Delta, vector<ZZ>* d, ZZ &r_Delta, Mod_p &c_Delta, Pedersen& ped){
+void func_pro::commit_d(vector<ZZ>* d, ZZ &r_d, Mod_p& c_d){
+	long i;
+	ZZ ord = G.get_ord();
+	long n=d->size();
+/*	string name = "example.txt";
+	ofstream ost;
+	ost.open(name.c_str(),ios::app);
+	ost<<"random values d ";*/
+	for(i=0; i<n; i++){
+		d->at(i)=RandomBnd(ord);
+//		ost<<d->at(i)<<" ";
+	}
+//	ost<<endl;
+
+	Functions::commit(d, r_d, c_d);
+}
+
+void func_pro::commit_Delta_op(vector<ZZ>* Delta, vector<ZZ>* d, ZZ &r_Delta, Mod_p &c_Delta){
 	long i,l;
 	ZZ temp;
 	ZZ ord = H.get_ord();
@@ -385,12 +519,48 @@ void func_pro::commit_Delta_op(vector<ZZ>* Delta, vector<ZZ>* d, ZZ &r_Delta, Mo
 		NegateMod(Delta_temp->at(i), temp, ord);
 	}
 
-	Functions::commit_op(Delta_temp, r_Delta, c_Delta, ped);
+	Functions::commit_op(Delta_temp, r_Delta, c_Delta);
 
 	delete Delta_temp;
 }
 
-void func_pro::commit_d_h_op(vector<vector<ZZ>* >* D_h, vector<ZZ>* d_h, vector<ZZ>* d, vector<ZZ>* Delta, ZZ & r_d_h, Mod_p &c_d_h, Pedersen& ped){
+void func_pro::commit_Delta(vector<ZZ>* Delta, vector<ZZ>* d, ZZ &r_Delta, Mod_p &c_Delta){
+	long i,l;
+	ZZ temp;
+	ZZ ord = H.get_ord();
+	vector<ZZ>* Delta_temp;
+	long n = Delta->size();
+
+/*	string name = "example.txt";
+	ofstream ost;
+	ost.open(name.c_str(),ios::app);
+	ost<<"vector Delta ";*/
+	for(i=0; i<n; i++){
+		Delta->at(i)=RandomBnd(ord);
+	}
+	Delta->at(0)=d->at(0);
+	Delta->at(n-1)=0;
+/*	for(i=0; i<n; i++){
+		ost<<Delta->at(i)<<" ";
+	}*/
+
+//	ost<<endl;
+//	ost<<"vector -Delta(i)d(i+1) ";
+	l=n-1;
+	Delta_temp= new vector<ZZ>(l);
+	for(i=0; i<l; i++){
+		MulMod(temp, Delta->at(i), d->at(i+1),ord);
+		NegateMod(Delta_temp->at(i), temp, ord);
+		//cout<<Delta_temp->at(i);
+	}
+//ost<<endl;
+	Functions::commit(Delta_temp, r_Delta, c_Delta);
+
+	delete Delta_temp;
+}
+
+
+void func_pro::commit_d_h_op(vector<vector<ZZ>* >* D_h, vector<ZZ>* d_h, vector<ZZ>* d, vector<ZZ>* Delta, ZZ & r_d_h, Mod_p &c_d_h){
 	long i,l;
 	ZZ temp, temp_1;
 	ZZ ord = G.get_ord();
@@ -412,10 +582,46 @@ void func_pro::commit_d_h_op(vector<vector<ZZ>* >* D_h, vector<ZZ>* d_h, vector<
 		SubMod(d_h_temp->at(i), temp_1, temp, ord);
 	}
 
-	Functions::commit_op(d_h_temp, r_d_h, c_d_h, ped);
+	Functions::commit_op(d_h_temp, r_d_h, c_d_h);
 
 	delete d_h_temp;
 }
+
+void func_pro::commit_d_h(vector<vector<ZZ>* >* D_h, vector<ZZ>* d_h, vector<ZZ>* d, vector<ZZ>* Delta, ZZ & r_d_h, Mod_p &c_d_h){
+	long i,l;
+	ZZ temp, temp_1;
+	ZZ ord = G.get_ord();
+	long m = D_h->size();
+	long n = d_h->size();
+
+/*	string name = "example.txt";
+	ofstream ost;
+	ost.open(name.c_str(),ios::app);*/
+	//setting the vectors to prove the product
+//	ost<<"vector d_h(i) = d_h(i-1)D_h(m-1)(i) ";
+	d_h->at(0) = D_h->at(m-1)->at(0);
+	for(i=1;i<n;i++){
+		MulMod(d_h->at(i), d_h->at(i-1), D_h->at(m-1)->at(i), ord);
+		//		ost<<d_h->at(i)<<" ";
+	}
+	//ost<<endl;
+	l=n-1;
+	vector<ZZ>* d_h_temp = new vector<ZZ>(l);
+	//	ost<<"vector  Delta(i+1)-D_h(m-1)(i+1)-d_h(i)d(i+1) ";
+	for(i=0; i<l; i++){
+		MulMod(temp, d_h->at(i), d->at(i+1), ord);
+		MulMod(temp_1, D_h->at(m-1)->at(i+1),Delta->at(i),ord);
+		SubMod(temp_1, Delta->at(i+1), temp_1, ord);
+		SubMod(d_h_temp->at(i), temp_1, temp, ord);
+		//		ost<<d_h_temp->at(i)<<" ";
+	}
+	//ost<<endl;
+	Functions::commit(d_h_temp, r_d_h, c_d_h);
+
+	delete d_h_temp;
+}
+
+
 
 void func_pro::calculate_B_bar(vector<ZZ>* B_0, vector<vector<ZZ>* >* B, vector<ZZ>* chal, vector<ZZ>* B_bar){
 	long i,j;

@@ -1,24 +1,33 @@
-# Notes on Bayer and Groth's verifiable shuffle
+## In one sentence
 
-**Bayer and Groth Verifiable Shuffles:**
-Stephanie Bayer and Jens Groth. _Efficient zero-knowledge argument for correctness of a shuffle_. EUROCRYPT 2012.
+Implementation of the Bayer-Groth mixnet with non-interactive Toom-Cook optimisation using Keccak SHA-256 hash functions.
 
-The original version of the verifiable shuffle is [here](https://github.com/derbear/verifiable-shuffle). Our modified version of the verified shuffle is [here](https://github.com/nirvantyagi/stadium/tree/master/groth) and mirrored [here](https://github.com/derbear/verifiable-shuffle/tree/stadium). 
+### Dependencies
 
-We modified Bayer and Groth's verifiable shuffle, decreasing latency by more than an order of magnitude. We optimized the shuffle by applying the following improvements:
+- make
+- gcc
+- NTL library
 
-- Added OpenMP directives to optimize key operations, such as Brickell et al.'s multi-exponentiation routines.
-- Replaced the use of integers with Moon and Langley's implementation of Bernstein's curve25519 group. (We avoid point compression and decompression in intermediary operations to improve speed.)
-- Improved point serialization and deserialization with byte-level representations of the data.
-- Taking into account different performance profile of curve25519, replaced some multi-exponentiation routines with naive version and tweaked multi-exponentiation window sizes. The bottleneck for the shuffle is currently in multi-exponentiation routines.
-- Added some more small optimizations (e.g. powers of 2, reduce dynamic memory allocations, etc.)
+### Build
 
-## Stadium
+make
 
-**SOSP Paper:**
-Nirvan Tyagi, Yossi Gilad, Derek Leung, Matei Zaharia, and Nickolai Zeldovich. _Stadium: A Distributed Metadata-Private Messaging System_. SOSP 2017.
+### Configure
 
-**ePrint:**
-Nirvan Tyagi, Yossi Gilad, Derek Leung, Matei Zaharia, and Nickolai Zeldovich. _Stadium: A Distributed Metadata-Private Messaging System_. Cryptology ePrint Archive, Report 2016/943. http://eprint.iacr.org/2016/943. 2016.
+Modify the parameters in the `config` file.
 
-This version of the shuffle library was used to implement verifiable shuffles in [Stadium](https://github.com/nirvantyagi/stadium).
+### Execute
+
+./shuffle
+
+### Copyright and license
+
+Copyright and license
+
+Copyright (C) 2015-2018 GRNET S.A. and individual contributors
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see http://www.gnu.org/licenses/.

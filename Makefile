@@ -3,13 +3,8 @@
 ## -------------------------------------------------------
 #  $Id: Makefile 187 2012-01-27 15:57:50Z mlange $
 #  -------------------------------------------------------
-export LD_LIBRARY_PATH=/usr/local/lib/
+
 APP=shuffle
-ORIGINALAPP=test
-LIBAPP=libshuffle.so
-VUVUZELA_APP=vuvuzela_shuffle
-VUVUZELA_SERVER_APP=shuffle_server
-VUVUZELA_CLIENT_APP=shuffle_client
 
 # options
 DATE  = $(shell /bin/date +%d.%m.%y)
@@ -31,84 +26,61 @@ SRC_DIR   = src
 
 VPATH = $(SRC_DIR)
 
-OPTIMIZE_FLAGS=-O2 -flto
-# OPTIMIZE_FLAGS=-O0
-
 # tools 
-CC = gcc -std=c++0x -fPIC
-CXX = g++ -std=c++0x -fPIC
+CC = gcc
+CXX = g++
 
 # compiler / linker flags
 CFLAGS= \
-        $(OPTIMIZE_FLAGS) \
-        -I $(INC_DIR)\
-		-Wall -g\
-		-fopenmp
+        -O2 \
+        -I $(INC_DIR)
 CXXFLAGS=\
-	$(OPTIMIZE_FLAGS) \
-        -I $(INC_DIR)\
-		-Wall -g\
-		-fopenmp
+	-O2 \
+        -I $(INC_DIR)
 
-LDFLAGS= $(OPTIMIZE_FLAGS)
+LDFLAGS=
 
+ifdef DEBUG
+CFLAGS+=-DDEBUG
+CXXFLAGS+=-DDEBUG
+endif
 # libraries to link against
-LIBS +=  -L/usr/local/lib/ -lntl -lgmp -lboost_system  -lboost_filesystem -lpthread -lboost_regex -lboost_thread -lboost_context -lgomp
+LIBS +=  -lntl -lgmp
 
 # source and header files
-ORIGINAL = \
-	test\
+FILES = \
+        main \
 	Cipher_elg\
-	CurvePoint\
+	Cyclic_group\
 	ElGammal\
-	FakeZZ\
+	fft\
 	func_pro\
 	func_ver\
 	Functions\
+	G_mem\
+	G_mod_p\
 	G_q\
 	Mod_p\
 	multi_expo\
 	Pedersen\
 	Permutation\
+	Prover_fft\
+	Prover_me\
 	Prover_toom\
-	SchnorrProof\
+	Prover\
+	Verifier_me\
 	Verifier_toom\
-	CipherTable \
-	Utils \
-	sha256\
-	NIZKProof\
-	RemoteShuffler\
-	VerifierClient
+	Verifier\
+	KeccakHash\
+	KeccakSponge\
+	KeccakF-1600-reference\
+	SnP-FBWL-default\
+	displayIntermediateValues
 
-TESTFILES = \
-	Cipher_elg\
-	CurvePoint\
-	ElGammal\
-	FakeZZ\
-	func_pro\
-	func_ver\
-	Functions\
-	G_q\
-	Mod_p\
-	multi_expo\
-	Pedersen\
-	Permutation\
-	Prover_toom\
-	SchnorrProof\
-	Verifier_toom\
-	CipherTable \
-	Utils \
-	sha256\
-	NIZKProof\
-	RemoteShuffler\
-	VerifierClient
 
-TESTOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(TESTFILES)))
-ORIGINALOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(ORIGINAL)))
-LIBOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(LIBFILES)))
-TESTDEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(TESTFILES)))
-ORIGINALDEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(ORIGINAL)))
-LIBDEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(LIBFILES)))
+
+OBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(FILES)))
+DEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(FILES)))
 
 #--- how to create object and dependencie files from sources ---
 $(OBJDIR)/%.o:%.cpp
@@ -117,27 +89,23 @@ $(OBJDIR)/%.o:%.cpp
 	@echo $(RD)"    creating dependencies for $<"$(NC)
 	$(CXX) $(CXXFLAGS) -MM -MT $(OBJDIR)/$*.o $<  >$(OBJDIR)/$*.d
 
+$(OBJDIR)/%.o:%.c
+	@echo $(RD)"    compiling $<"$(NC)
+	$(CC) $(CFLAGS) -c $< -o $@
+	@echo $(RD)"    creating dependencies for $<"$(NC)
+	$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $<  >$(OBJDIR)/$*.d
+
+
+
 # all
 ## make all  - creates software
 # -------------------------------------------------------
-#all: $(OBJDIR) $(OBJECTS) 
-#	@echo $(RD)"    linking object files"$(NC)
-#	$(CXX) $(LDFLAGS) -o $(APP) $(OBJECTS) $(LIBS)
-#
-#-include $(DEPENDS)
-
-lib: $(OBJDIR) $(TESTOBJECTS) 
+all: $(OBJDIR) $(OBJECTS) 
 	@echo $(RD)"    linking object files"$(NC)
-	$(CXX) $(LDFLAGS) -shared -o $(LIBAPP) $(TESTOBJECTS) $(LIBS)
-	cp src/Utils.h ./Utils.h
-	cp src/keys.h ./keys.h
--include $(TESTDEPENDS)
+	$(CXX) $(LDFLAGS) -o $(APP) $(OBJECTS) $(LIBS)
 
-test: $(OBJDIR) $(ORIGINALOBJECTS) 
-	@echo $(RD)"    linking object files"$(NC)
-	$(CXX) $(LDFLAGS) -o $(ORIGINALAPP) $(ORIGINALOBJECTS) $(LIBS)
+-include $(DEPENDS)
 
--include $(ORIGINALDEPENDS)
 
 # create directories
 $(OBJDIR):

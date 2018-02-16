@@ -8,14 +8,13 @@
 #ifndef FUNC_PRO_H_
 #define FUNC_PRO_H_
 
-#include "Functions.h"
 #include<vector>
 #include "Cipher_elg.h"
 #include "G_q.h"
 #include "Mod_p.h"
 #include "Pedersen.h"
 
-#include "FakeZZ.h"
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
 
@@ -34,16 +33,22 @@ public:
 
 	static void set_D(vector<vector<ZZ>*>* D, vector<vector<ZZ>*>* A, vector<vector<ZZ>*>* B, ZZ chal_z, ZZ chal_y);
 	static void set_D_h(vector<vector<ZZ>*>* D_h, vector<vector<ZZ>*>* D);
-	static void commit_B0_op(vector<ZZ>* B_0, vector<vector<long>* >* basis_B0, ZZ &r_B0, Mod_p &c_B0, long omega_mulex, Pedersen& ped);
+	static void commit_B0_op(vector<ZZ>* B_0, vector<vector<long>* >* basis_B0, ZZ &r_B0, Mod_p &c_B0, long omega_mulex );
+	static void commit_B0(vector<ZZ>* B_0, ZZ &r_B0, Mod_p &c_B0);
 
 	static void set_Rb(vector<vector<ZZ>*>* B, vector<vector<ZZ>*>* R, ZZ &R_b);
-	static void commit_a_op(vector<ZZ>* a, vector<ZZ>* r_a, vector<Mod_p>* c_a, Pedersen& ped);
+	static void commit_a_op(vector<ZZ>* a, vector<ZZ>* r_a, vector<Mod_p>* c_a);
+	static void commit_a(vector<ZZ>* a, vector<ZZ>* r_a, vector<Mod_p>* c_a);
 
 	static void set_D_s(vector<vector<ZZ>*>* D_s, vector<vector<ZZ>*>* D_h, vector<vector<ZZ>*>* D, vector<ZZ>* chal, ZZ & r_Dl_bar);
-	static void commit_Dl_op(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_Dl, vector<vector<ZZ>*>* D, vector<vector<ZZ>*>* D_s, vector<ZZ>* chal, Pedersen& ped);
-	static void commit_d_op(vector<ZZ>* d, ZZ &r_d, Mod_p & c_d, Pedersen& ped);
-	static void commit_Delta_op(vector<ZZ>* Delta, vector<ZZ>* d, ZZ & r_Delta, Mod_p & c_Delta, Pedersen& ped);
-	static void commit_d_h_op(vector<vector<ZZ>*>* D_h, vector<ZZ>* d_h, vector<ZZ>* d, vector<ZZ>* Delta, ZZ & r_d_h, Mod_p &c_d_h, Pedersen& ped);
+	static void commit_Dl_op(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_Dl, vector<vector<ZZ>*>* D, vector<vector<ZZ>*>* D_s, vector<ZZ>* chal);
+	static void commit_d_op(vector<ZZ>* d, ZZ &r_d, Mod_p & c_d);
+	static void commit_Delta_op(vector<ZZ>* Delta, vector<ZZ>* d, ZZ & r_Delta, Mod_p & c_Delta);
+	static void commit_d_h_op(vector<vector<ZZ>*>* D_h, vector<ZZ>* d_h, vector<ZZ>* d, vector<ZZ>* Delta, ZZ & r_d_h, Mod_p &c_d_h);
+	static void commit_Dl(vector<Mod_p>* c_Dl, vector<ZZ>* Dl, vector<ZZ>* r_Dl, vector<vector<ZZ>*>* D, vector<vector<ZZ>*>* D_s, vector<ZZ>* chal, ZZ rou);
+	static void commit_d(vector<ZZ>* d, ZZ &r_d, Mod_p & c_d);
+	static void commit_Delta(vector<ZZ>* Delta,vector<ZZ>* d, ZZ & r_Delta, Mod_p & c_Delta);
+	static void commit_d_h(vector<vector<ZZ>*>* D_h, vector<ZZ>* d_h, vector<ZZ>* d, vector<ZZ>* Delta, ZZ & r_d_h, Mod_p &c_d_h);
 
 	static void calculate_B_bar(vector<ZZ>* T_0, vector<vector<ZZ>*>* T, vector<ZZ>* chal, vector<ZZ>* B_bar);
 	static void calculate_r_B_bar(vector<ZZ>* r_T, vector<ZZ>* chal, ZZ r_T0, ZZ &r_B_bar);

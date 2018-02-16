@@ -1,0 +1,51 @@
+# Copyright 2012 Stephanie Bayer
+
+# This file is part of my shuffle protocol test program
+################################################################################
+##################### Configuration parameters below this line###########################
+################################################################################
+
+# This parameter determine which version of the program is executed.# 0 stands for no optimization inside of the code
+# 1 uses multi-exponentiation techniques
+# 2 uses multi-exponentiation techniques and FFT to find values E_i
+# 3 uses multi-exponentiation techniques, extra interaction and Toom-Cook 4 to find values E_i, in this case m =16 or 64\n
+optimization_method=0
+
+# Actual number of ciphertext used in the shuffle protocol
+#number_of_ciphertexts=100000
+number_of_ciphertexts=1000
+
+# Dimension of the m x n matrix used in the protocol. First line corresponds to number of rows m,
+# second line corresponds to number of columns n
+ciphertext_matrix_rows=8
+#ciphertext_matrix_columns=12500
+ciphertext_matrix_columns=125
+
+# Window size for the sliding window multi-exponentiation technique; default value is 5 for q 160 bits else 6
+window_size_multi_exponentiation=6
+
+# Window size of the multi-exponentiation technique by Lim and Lee; default value is 5
+window_size_multi_exponentiation_lim_lee=5
+
+# Window size of the multi-exponentiation technique by Brickels et al.; default value is 7
+window_size_multi_exponentiation_brickels=7
+
+# Types of groups uses.
+#  0 the same modular group G is used for the commitments and the encryption
+# 1 the commitments are calculated in G subset Z_p_1 with order q and the encryption in H subset Z_p_2 with order q
+modular_groups=0
+
+# Name of the file consisting the description of the groups used in the protocol
+# If only one group is used the file should consist of the prime p, prime order q,  a generator of G   and a generator of Z_q
+# If two different groups are used the file should consist of the prime p, prime order q, a generator of G, a generator of Z_q, the prime p1 and a generator of H
+# Or set parameter to 0 if you want to define groups of own choice.
+group_description_file_name=160_1248
+
+# Number of bits of prime order q
+number_of_bits_prime_order_q=12
+
+# Number of bits of prime p
+number_of_bits_prime_p=20
+
+# Number of bits of prime p1; if two different groups are used.
+number_of_bits_prime_p1=2432

@@ -15,7 +15,7 @@
 #define PERMUTATION_H_
 #include<vector>
 #include "G_q.h"
-#include "FakeZZ.h"
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
 #include "Mod_p.h"

@@ -13,8 +13,7 @@
 
 #include "Cipher_elg.h"
 #include "G_q.h"
-#include "FakeZZ.h"
-#include "CurvePoint.h"
+#include <NTL/ZZ.h>
 NTL_CLIENT
 
 #include "Mod_p.h"
@@ -27,9 +26,31 @@ private:
 	Mod_p pk; //public key
 public:
 	//Constructor & destructor
-	void print() const;
 	ElGammal();
-        ElGammal(const ElGammal &other);
+	ElGammal(long s, Mod_p p, G_q H);
+	ElGammal(ZZ s, Mod_p p,G_q H);
+	ElGammal(long s,G_q H);
+	ElGammal(ZZ s,G_q H);
+	ElGammal(Mod_p gen, long o, long mod, long s);
+	ElGammal(Mod_p gen, long o, ZZ mod, long s);
+	ElGammal(Mod_p gen, long o, ZZ mod, ZZ s);
+	ElGammal(Mod_p gen, ZZ o, ZZ mod, long s);
+	ElGammal(Mod_p gen, ZZ o, ZZ mod, ZZ s);
+	ElGammal(Mod_p gen, long o, long mod, long s, Mod_p p);
+	ElGammal(Mod_p gen, long o, ZZ mod, long s, Mod_p p);
+	ElGammal(Mod_p gen, long o, ZZ mod, ZZ s, Mod_p p);
+	ElGammal(Mod_p gen, ZZ o, ZZ mod, long s, Mod_p p);
+	ElGammal(Mod_p gen, ZZ o, ZZ mod, ZZ s, Mod_p p);
+	ElGammal(long o, long mod, long s, Mod_p p);
+	ElGammal(long o, ZZ mod, long s, Mod_p p);
+	ElGammal(ZZ o, ZZ mod, long s, Mod_p p);
+	ElGammal(long o, ZZ mod, ZZ s, Mod_p p);
+	ElGammal(ZZ o, ZZ mod, ZZ s, Mod_p p);
+	ElGammal(long o, long mod, long s);
+	ElGammal(long o, ZZ mod, long s);
+	ElGammal(ZZ o, ZZ mod, long s);
+	ElGammal(long o, ZZ mod, ZZ s);
+	ElGammal(ZZ o, ZZ mod, ZZ s);
 	virtual ~ElGammal();
 
 	//Access to the variables
@@ -41,11 +62,18 @@ public:
 	void set_group(G_q G);
 	void set_sk(ZZ s);
 	void set_sk(long s);
-	void set_pk(Mod_p& pk_);
 
 	//encryption and decryption functions
+	Cipher_elg encrypt(Mod_p m);
+	Cipher_elg encrypt(ZZ m);
+	Cipher_elg encrypt(long m);
+
+	Cipher_elg encrypt(Mod_p m, long ran);
 	Cipher_elg encrypt(Mod_p m, ZZ ran);
-	Cipher_elg encrypt(CurvePoint m, ZZ ran);
+	Cipher_elg encrypt(ZZ m, long ran);
+	Cipher_elg encrypt(ZZ m, ZZ ran);
+	Cipher_elg encrypt(long m, long ran);
+	Cipher_elg encrypt(long m, ZZ ran);
 
 	//decryption function
 	Mod_p decrypt(Cipher_elg c);

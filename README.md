@@ -1,24 +1,43 @@
-# Notes on Bayer and Groth's verifiable shuffle
+### Concept
 
-**Bayer and Groth Verifiable Shuffles:**
-Stephanie Bayer and Jens Groth. _Efficient zero-knowledge argument for correctness of a shuffle_. EUROCRYPT 2012.
+This project builds on top of the Stadium software project, which is hosted at https://github.com/nirvantyagi/stadium.
+Stadium is a distributed metadata-private messaging system.
+The LICENSE, README, and NOTICE files of the original repo are retained in this repo also.
 
-The original version of the verifiable shuffle is [here](https://github.com/derbear/verifiable-shuffle). Our modified version of the verified shuffle is [here](https://github.com/nirvantyagi/stadium/tree/master/groth) and mirrored [here](https://github.com/derbear/verifiable-shuffle/tree/stadium). 
+This project is concerned with the adapted mixnet of Bayer-Groth that is used internally by Stadium to shuffle messages.
+Of particular importance are the mixnet's efficiency and limitations.
 
-We modified Bayer and Groth's verifiable shuffle, decreasing latency by more than an order of magnitude. We optimized the shuffle by applying the following improvements:
+### Efficiency
 
-- Added OpenMP directives to optimize key operations, such as Brickell et al.'s multi-exponentiation routines.
-- Replaced the use of integers with Moon and Langley's implementation of Bernstein's curve25519 group. (We avoid point compression and decompression in intermediary operations to improve speed.)
-- Improved point serialization and deserialization with byte-level representations of the data.
-- Taking into account different performance profile of curve25519, replaced some multi-exponentiation routines with naive version and tweaked multi-exponentiation window sizes. The bottleneck for the shuffle is currently in multi-exponentiation routines.
-- Added some more small optimizations (e.g. powers of 2, reduce dynamic memory allocations, etc.)
+The Stadium mixnet's efficiency is significantly improved over both the original version and another version that uses non-interactive Toom-Cook multiplications and Keccak SHA-3 256 hash functions. Because the Stadium mixnet parallelises computations with OpenMP directives, its efficiency scales with the power of the underlying computing infrastructure. The following table presents some experiment results.
 
-## Stadium
+| Computing environment            | Mixnet                     | Total (sec) | Verify (sec) | Prove (sec) | Shuffle (sec) |
+|:--------------------------------:|:----------------------------------:| -----------:| ------------:| -----------:| -------------:|
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM | non-interactive, m = 64, n =  1563 |  67         |  12          |  42         |  13           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium, m = 64, n =  1563         |  67         |  12          |  42         |  13           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium, m = 64, n = 15625         | 924         | 154          | 644         | 126           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM | Stadium, m = 64, n = 15625         | 405         | 89           | 263         |  53           |
 
-**SOSP Paper:**
-Nirvan Tyagi, Yossi Gilad, Derek Leung, Matei Zaharia, and Nickolai Zeldovich. _Stadium: A Distributed Metadata-Private Messaging System_. SOSP 2017.
+In their paper (see README-stadium.md), the authors show that in a single server installation, Stadium's efficiency improves linearly with the number of available cores in the system. The presented experiment results agree with this pattern.
 
-**ePrint:**
-Nirvan Tyagi, Yossi Gilad, Derek Leung, Matei Zaharia, and Nickolai Zeldovich. _Stadium: A Distributed Metadata-Private Messaging System_. Cryptology ePrint Archive, Report 2016/943. http://eprint.iacr.org/2016/943. 2016.
+### Limitations
 
-This version of the shuffle library was used to implement verifiable shuffles in [Stadium](https://github.com/nirvantyagi/stadium).
+Stadium's mixnet crashes for m > 64, e.g. 128. This is because of a vector data structure going out of range during the verification phase at round 10. Specifying larger size for the data structure fixes the crash, but causes the shuffle to fail. More on the cause of this shortly. Commit [https://github.com/grnet/bg-mixnet/commit/6e2d99aa423d720e184489056d54b233df34969f](6e2d99aa42) highlights this problem.
+
+### Software dependencies
+
+- make
+- gcc
+- NTL library
+
+### Build
+
+make test
+
+### Configure
+
+Modify the `config/config` file
+
+### Execute
+
+./test

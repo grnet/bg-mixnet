@@ -639,7 +639,7 @@ void Verifier_toom::calculate_c(Cipher_elg& c, vector<vector<Cipher_elg>* >* enc
 		}
 	}
 	
-	Cipher_elg temp[n];
+	Cipher_elg temp[m];
 	#pragma omp parallel for num_threads(num_threads) if(parallel)
 	for(i=0; i<m ; i++){
 		par_expo_mult(temp[i], enc->at(i), v_chal, omega);

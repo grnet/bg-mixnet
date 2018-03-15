@@ -72,10 +72,14 @@ string RemoteShuffler::create_nizk() {
 		v = round7(input_for_next_prover, &input_for_next_prover, &c, &r);
 		proof.add_new_step(v, c, r);
 	} else {
-		v = round5red(input_for_next_prover, &input_for_next_prover, &c, &r);
-		proof.add_new_step(v, c, r);
-		v = round5red_1(input_for_next_prover, &input_for_next_prover, &c, &r);
-		proof.add_new_step(v, c, r);
+		while (m_r_ > 4) {
+			v = round5red(input_for_next_prover, &input_for_next_prover, &c,
+                                      &r);
+			proof.add_new_step(v, c, r);
+			v = round5red_1(input_for_next_prover, &input_for_next_prover,
+                                        &c, &r);
+			proof.add_new_step(v, c, r);
+		}
 		v = round7red(input_for_next_prover, &input_for_next_prover, &c, &r);
 		proof.add_new_step(v, c, r);
 	}

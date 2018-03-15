@@ -335,56 +335,58 @@ string Verifier_toom::round_6_red1(const string& input, ZZ& challenge){
           use_challenge = false;
         }
 	
-	//reads the values out of the file name
-	stringstream ist(input);
-	ist>>c_z;
-	for (i = 0; i<m; i++){
-		ist >>c_Dh->at(i);
-	}
-	for(i=0;i<mu_h;i++){
-		ist>>C_c->at(i);
-	}
-	for(i=0; i<mu_h; i++){
-		ist>>c_a_c ->at(i);
-	}
-
-	ist>>a_c_bar;
-	ist>>r_ac_bar;
-
-	temp = Mod_p(curve_zeropoint(),mod);//a_a_c->at(mu-1) should equal the commitment to 0
-        use_challenge = use_challenge &&
-          (c_a_c->at(mu-1)==temp) &&
-          (com == ped_.commit(a_c_bar, r_ac_bar)) &&
-          (C == C_c->at(mu-1));
-	if(use_challenge) {
-		//sets the vector chal_x6 to the values temp, temp^2,...
-		ZZ challenge1 = derive_from_challenge(challenge, "chal_x6");
-		func_ver::fill_vector(chal_x6, challenge1);
-
-		//sets the vector chal_y6 to the values temp, temp^2,...
-		ZZ challenge2 = derive_from_challenge(challenge, "chal_y6");
-		func_ver::fill_vector(chal_y6, challenge2);
-	} else {
-          // explicit init
-          for (unsigned int i = 0; i < chal_x6->size(); i++) {
-            chal_x6->at(i) = ZZ(NTL::ZZ());
-          }
-          for (unsigned int i = 0; i < chal_y6->size(); i++) {
-            chal_y6->at(i) = ZZ(NTL::ZZ());
-          }
-        }
-
-
-	l=2*m;
 	stringstream ost;
-	for (i=0; i<l; i++){
-		ost << chal_x6->at(i)<<" ";
+        if (m_r <= 4) {
+		//reads the values out of the file name
+		stringstream ist(input);
+		ist>>c_z;
+		for (i = 0; i<m; i++){
+			ist >>c_Dh->at(i);
+		}
+		for(i=0;i<mu_h;i++){
+			ist>>C_c->at(i);
+		}
+		for(i=0; i<mu_h; i++){
+			ist>>c_a_c ->at(i);
+		}
+
+		ist>>a_c_bar;
+		ist>>r_ac_bar;
+
+		temp = Mod_p(curve_zeropoint(),mod);//a_a_c->at(mu-1) should equal the commitment to 0
+		use_challenge = use_challenge &&
+		  (c_a_c->at(mu-1)==temp) &&
+		  (com == ped_.commit(a_c_bar, r_ac_bar)) &&
+		  (C == C_c->at(mu-1));
+		if(use_challenge) {
+			//sets the vector chal_x6 to the values temp, temp^2,...
+			ZZ challenge1 = derive_from_challenge(challenge, "chal_x6");
+			func_ver::fill_vector(chal_x6, challenge1);
+
+			//sets the vector chal_y6 to the values temp, temp^2,...
+			ZZ challenge2 = derive_from_challenge(challenge, "chal_y6");
+			func_ver::fill_vector(chal_y6, challenge2);
+		} else {
+			// explicit init
+			for (unsigned int i = 0; i < chal_x6->size(); i++) {
+				chal_x6->at(i) = ZZ(NTL::ZZ());
+			}
+			for (unsigned int i = 0; i < chal_y6->size(); i++) {
+				chal_y6->at(i) = ZZ(NTL::ZZ());
+			}
+		}
+
+
+		l=2*m;
+		for (i=0; i<l; i++){
+			ost << chal_x6->at(i)<<" ";
+		}
+		ost << "\n";
+		for (i=0; i<n; i++){
+			ost << chal_y6->at(i)<<" ";
+		}
+		ost << "\n";
 	}
-	ost << "\n";
-	for (i=0; i<n; i++){
-		ost << chal_y6->at(i)<<" ";
-	}
-	ost << "\n";
 	return ost.str();
 }
 string Verifier_toom::round_6_red1(const string& input, ZZ* challenge, ZZ* random_out) {
@@ -881,7 +883,6 @@ void Verifier_toom::check_E_red(vector<vector<Cipher_elg>* >* C, bool& b){
 	for(i=0; i<m_r;i++){
 		C_small_temp->at(i) = new vector<Cipher_elg>(n);
 	}
-        cout << "C_small_temp size: " << C_small_temp->size() << " (equals m_r)" << endl;
 	
 	#pragma omp parallel for collapse(2) num_threads(num_threads) if(parallel)
 	for(i=0; i<m_r;i++){

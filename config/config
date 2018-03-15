@@ -12,12 +12,12 @@
 3
 
 # Actual number of ciphertext used in the shuffle protocol
-64000
+1100000
 
 # Dimension of the m x n matrix used in the protocol. First line corresponds to number of rows m,
 # second line corresponds to number of columns n
-64
-256
+1024
+9
 
 # Window size for the sliding window multi-exponentiation technique; default value is 5 for q 160 bits else 6
 6

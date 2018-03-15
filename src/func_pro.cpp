@@ -179,7 +179,6 @@ void func_pro::set_D(vector<vector<ZZ>* >* D, vector<vector<ZZ>* >* A, vector<ve
 		D->at(i)= row;
 	}
 
-	Functions::delete_vector(A);
 }
 
 void func_pro::set_D_h(vector<vector<ZZ>* >* D_h, vector<vector<ZZ>* >* D){

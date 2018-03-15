@@ -336,6 +336,12 @@ void freeCharArray(char **a, int size) {
 }
 
 
+void usage(long m) {
+	cout << "Invalid number of rows (m): " << m <<endl;
+	cout << "Requirement: 4^x = m for integer x > 2" <<endl;
+	exit(1);
+}
+
 void test() {
 	init();
 	
@@ -345,6 +351,16 @@ void test() {
 	
 	long m = num[1];
 	long n = num[2];
+	if (m < 64)
+		usage(m);
+	// Check that m satisfies 4^x = m
+	int i = 3;
+	long pow_m = 64;
+        while (pow_m < m)
+		pow_m = pow(4, i++);
+	if (pow_m > m)
+		usage(m);
+
 	cout << "shuffling " << n * m << " messages" <<endl;
 	unsigned char** secrets = new unsigned char* [m * n];
 	

@@ -1,8 +1,6 @@
 ## 
-## HSM lib test Makefile
-## -------------------------------------------------------
-#  $Id: Makefile 187 2012-01-27 15:57:50Z mlange $
-#  -------------------------------------------------------
+## Bayer-groth mixnet executable and library Makefile
+
 export LD_LIBRARY_PATH=/usr/local/lib/
 APP=bgmix
 LIBAPP=libbgmix.so
@@ -53,7 +51,7 @@ LIBS +=  -L/usr/local/lib/ -lntl -lgmp -lboost_system  -lboost_filesystem -lpthr
 
 # source and header files
 SRCFILES = \
-	test\
+	main\
 	Cipher_elg\
 	CurvePoint\
 	ElGammal\

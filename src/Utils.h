@@ -50,7 +50,7 @@ void* encrypt_cipher_part(void* cipher_and_proof);
 void* encrypt_proof_part(void* cipher_and_proof, int* proof_size);
 // same as delete_ciphers except to be called on encrypt_with_proof instead of encrypt
 // note: do not pass parts to other delete functions (will cause double free)
-void* delete_ciphers_with_proof(void* x);
+void delete_ciphers_with_proof(void* x);
 // verify a proof output by encrypt_proof_part and their corresponding ciphertexts
 int verify_encrypt(void* ciphers, int ciphers_size, void* proof, int proof_size);
 

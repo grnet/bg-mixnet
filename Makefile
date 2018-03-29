@@ -4,12 +4,8 @@
 #  $Id: Makefile 187 2012-01-27 15:57:50Z mlange $
 #  -------------------------------------------------------
 export LD_LIBRARY_PATH=/usr/local/lib/
-APP=shuffle
-ORIGINALAPP=test
-LIBAPP=libshuffle.so
-VUVUZELA_APP=vuvuzela_shuffle
-VUVUZELA_SERVER_APP=shuffle_server
-VUVUZELA_CLIENT_APP=shuffle_client
+APP=bgmix
+LIBAPP=libbgmix.so
 
 # options
 DATE  = $(shell /bin/date +%d.%m.%y)
@@ -56,7 +52,7 @@ LDFLAGS= $(OPTIMIZE_FLAGS)
 LIBS +=  -L/usr/local/lib/ -lntl -lgmp -lboost_system  -lboost_filesystem -lpthread -lboost_regex -lboost_thread -lboost_context -lgomp
 
 # source and header files
-ORIGINAL = \
+SRCFILES = \
 	test\
 	Cipher_elg\
 	CurvePoint\
@@ -104,10 +100,10 @@ TESTFILES = \
 	VerifierClient
 
 TESTOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(TESTFILES)))
-ORIGINALOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(ORIGINAL)))
+OBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(SRCFILES)))
 LIBOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(LIBFILES)))
 TESTDEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(TESTFILES)))
-ORIGINALDEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(ORIGINAL)))
+DEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(SRCFILES)))
 LIBDEPENDS = $(addprefix $(OBJDIR)/, $(addsuffix .d, $(LIBFILES)))
 
 #--- how to create object and dependencie files from sources ---
@@ -118,13 +114,13 @@ $(OBJDIR)/%.o:%.cpp
 	$(CXX) $(CXXFLAGS) -MM -MT $(OBJDIR)/$*.o $<  >$(OBJDIR)/$*.d
 
 # all
-## make all  - creates software
 # -------------------------------------------------------
-#all: $(OBJDIR) $(OBJECTS) 
-#	@echo $(RD)"    linking object files"$(NC)
-#	$(CXX) $(LDFLAGS) -o $(APP) $(OBJECTS) $(LIBS)
-#
-#-include $(DEPENDS)
+## make all  - creates software
+all: $(OBJDIR) $(OBJECTS) 
+	@echo $(RD)"    linking object files"$(NC)
+	$(CXX) $(LDFLAGS) -o $(APP) $(OBJECTS) $(LIBS)
+
+-include $(DEPENDS)
 
 lib: $(OBJDIR) $(TESTOBJECTS) 
 	@echo $(RD)"    linking object files"$(NC)
@@ -132,12 +128,6 @@ lib: $(OBJDIR) $(TESTOBJECTS)
 	cp src/Utils.h ./Utils.h
 	cp src/keys.h ./keys.h
 -include $(TESTDEPENDS)
-
-test: $(OBJDIR) $(ORIGINALOBJECTS) 
-	@echo $(RD)"    linking object files"$(NC)
-	$(CXX) $(LDFLAGS) -o $(ORIGINALAPP) $(ORIGINALOBJECTS) $(LIBS)
-
--include $(ORIGINALDEPENDS)
 
 # create directories
 $(OBJDIR):

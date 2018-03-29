@@ -49,10 +49,12 @@ void* create_pub_key(int key_id) {
 #if USE_REAL_POINTS
         // private key is
         // {0x50, 0x44, 0x4f, 0x53, 0x0, ...}
+        cout << "Cryptosystem: ElGamal on elliptic curve (Curve25519) points" << endl;
         CurvePoint pk_ = raw_curve_pt(pkeys[key_id]);
         // TODO this does not handle garbage collection
         pk = Mod_p(pk_, G.get_mod());
 #else
+        cout << "Cryptosystem: ElGamal on big integers" << endl;
 	string fname = string("config/keys/pub") + to_string(key_id);
 	ifstream ist;
 	ist.open(fname);
@@ -176,7 +178,7 @@ void* encrypt_proof_part(void* cipher_and_proof, int* proof_size) {
   return s->proofs;
 }
 
-void* delete_ciphers_with_proof(void* x) {
+void delete_ciphers_with_proof(void* x) {
   struct ciphertexts_and_proofs *s = (struct ciphertexts_and_proofs *) x;
   delete_ciphers(s->ciphertexts);
   delete[] s->proofs;
@@ -373,8 +375,11 @@ void test() {
 	
 	time_t begin = time(NULL);
 	CipherTable* ciphers = (CipherTable*) encrypt((void**) secrets, SECRET_SIZE, m * n, 1);
+	/*for (int i = 0; i < m; i++)
+		for (int j = 0; j < n; j++)
+			cout << "cipher " << i << " " << j << " : " << ciphers->getCMatrix()->at(i)->at(j) << endl;*/
 	time_t enc_time = time(NULL);
-	cout << "ecryption time: " << enc_time - begin << endl; 
+	cout << "encryption time: " << enc_time - begin << endl; 
 
 	time_t parse_start = time(NULL);
 	cout << "parsing input" <<endl;

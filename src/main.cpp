@@ -1,4 +1,4 @@
-#include "Utils.h"
+#include "Bgmix.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -8,7 +8,7 @@ int main() {
 	time_t begin = time(NULL);
 	std::thread* th_arr[kNumTests];
 	for (int i = 0; i < kNumTests; i++) {
-		th_arr[i] = new std::thread(test);
+		th_arr[i] = new std::thread(mix);
 	}
 
 	std::cout << "waiting for everyone..." <<std::endl;

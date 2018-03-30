@@ -1,4 +1,4 @@
-#include "Utils.h"
+#include "Bgmix.h"
 
 #include "CipherTable.h"
 #include "Globals.h"
@@ -49,12 +49,10 @@ void* create_pub_key(int key_id) {
 #if USE_REAL_POINTS
         // private key is
         // {0x50, 0x44, 0x4f, 0x53, 0x0, ...}
-        cout << "Cryptosystem: ElGamal on elliptic curve (Curve25519) points" << endl;
         CurvePoint pk_ = raw_curve_pt(pkeys[key_id]);
         // TODO this does not handle garbage collection
         pk = Mod_p(pk_, G.get_mod());
 #else
-        cout << "Cryptosystem: ElGamal on big integers" << endl;
 	string fname = string("config/keys/pub") + to_string(key_id);
 	ifstream ist;
 	ist.open(fname);
@@ -211,7 +209,7 @@ int verify_encrypt(void* ciphertexts, int ciphertexts_size, void* pfs, int proof
   return verified;
 }
 
-void* encrypt(void** in_secrets, int secretLen, int arrayLen, int keyIndex) {
+void* elg_encrypt(void** in_secrets, int secretLen, int arrayLen, int keyIndex) {
 	init();
 	const unsigned char** secrects = (const unsigned char**) in_secrets; 
 	ElGammal* elgammal = (ElGammal*)create_pub_key(keyIndex);
@@ -344,7 +342,13 @@ void usage(long m) {
 	exit(1);
 }
 
-void test() {
+void mix() {
+
+#if USE_REAL_POINTS
+        cout << "Cryptosystem: ElGamal on elliptic curve (Curve25519) points" << endl;
+#else
+        cout << "Cryptosystem: ElGamal on big integers" << endl;
+#endif
 	init();
 	
 	const int SECRET_SIZE = 5;
@@ -374,7 +378,7 @@ void test() {
 	}
 	
 	time_t begin = time(NULL);
-	CipherTable* ciphers = (CipherTable*) encrypt((void**) secrets, SECRET_SIZE, m * n, 1);
+	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets, SECRET_SIZE, m * n, 1);
 	/*for (int i = 0; i < m; i++)
 		for (int j = 0; j < n; j++)
 			cout << "cipher " << i << " " << j << " : " << ciphers->getCMatrix()->at(i)->at(j) << endl;*/

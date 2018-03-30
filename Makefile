@@ -52,6 +52,7 @@ LIBS +=  -L/usr/local/lib/ -lntl -lgmp -lboost_system  -lboost_filesystem -lpthr
 # source and header files
 SRCFILES = \
 	main\
+	Bgmix \
 	Cipher_elg\
 	CurvePoint\
 	ElGammal\
@@ -68,13 +69,13 @@ SRCFILES = \
 	SchnorrProof\
 	Verifier_toom\
 	CipherTable \
-	Utils \
 	sha256\
 	NIZKProof\
 	RemoteShuffler\
 	VerifierClient
 
 TESTFILES = \
+	Bgmix \
 	Cipher_elg\
 	CurvePoint\
 	ElGammal\
@@ -91,7 +92,6 @@ TESTFILES = \
 	SchnorrProof\
 	Verifier_toom\
 	CipherTable \
-	Utils \
 	sha256\
 	NIZKProof\
 	RemoteShuffler\
@@ -117,13 +117,14 @@ $(OBJDIR)/%.o:%.cpp
 all: $(OBJDIR) $(OBJECTS) 
 	@echo $(RD)"    linking object files"$(NC)
 	$(CXX) $(LDFLAGS) -o $(APP) $(OBJECTS) $(LIBS)
+	cp src/Bgmix.h ./Bgmix.h
 
 -include $(DEPENDS)
 
 lib: $(OBJDIR) $(TESTOBJECTS) 
 	@echo $(RD)"    linking object files"$(NC)
 	$(CXX) $(LDFLAGS) -shared -o $(LIBAPP) $(TESTOBJECTS) $(LIBS)
-	cp src/Utils.h ./Utils.h
+	cp src/Bgmix.h ./Bgmix.h
 	cp src/keys.h ./keys.h
 -include $(TESTDEPENDS)
 

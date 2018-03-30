@@ -1,5 +1,5 @@
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#ifndef __BGMIX_H__
+#define __BGMIX_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,7 +11,7 @@ extern "C" {
 
 void hello();
 
-void test();
+void mix();
 
 #include <stdint.h>
 
@@ -36,7 +36,7 @@ void delete_key(void* elgammal);
 
 /******************* Interface ********************/
 void init();
-void* encrypt(void** secrets, int secretLen, int arrayLen, int keyIndex);
+void* elg_encrypt(void** secrets, int secretLen, int arrayLen, int keyIndex);
 void* get_ciphertexts(void* cipher_table, void* len, void* elmenent_size);
 void* get_element(void* cipher_table, int index, void* len);
 void* get_cipher(void* cipher_table, int i, int j, void* len);

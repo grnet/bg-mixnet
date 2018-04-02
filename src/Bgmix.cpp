@@ -344,13 +344,20 @@ void usage(long m) {
 
 void mix() {
 
+#ifdef LOG_CRYPTO_OUTPUT
+	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);	// log file specified in config
+	streambuf *saved_cout = cout.rdbuf();	// save cout buffer
+	cout.rdbuf(log.rdbuf());		// redirect cout buffer to log file
+	cout << "Log messages in file " << LOG_CRYPTO_OUTPUT << endl;
+#endif
+
 #if USE_REAL_POINTS
         cout << "Cryptosystem: ElGamal on elliptic curve (Curve25519) points" << endl;
 #else
         cout << "Cryptosystem: ElGamal on big integers" << endl;
 #endif
 	init();
-	
+
 	const int SECRET_SIZE = 5;
 
 	srand ((unsigned int) time (NULL));
@@ -430,6 +437,10 @@ void mix() {
 	} else {
 		cout << "shuffle failed!" <<endl;
 	}
+#ifdef LOG_CRYPTO_OUTPUT
+	cout.rdbuf(saved_cout);
+	log.close();
+#endif
 }
 
 void hello() {

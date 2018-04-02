@@ -32,6 +32,8 @@ OPTIMIZE_FLAGS=-O2 -flto
 CC = gcc -std=c++0x -fPIC
 CXX = g++ -std=c++0x -fPIC
 
+LOG_CRYPTO_OUTPUT := $(if $(LOG_CRYPTO_OUTPUT),$(LOG_CRYPTO_OUTPUT),"/var/log/celery/bg_mixnet.log")
+
 # compiler / linker flags
 CFLAGS= \
         $(OPTIMIZE_FLAGS) \
@@ -42,7 +44,8 @@ CXXFLAGS=\
 	$(OPTIMIZE_FLAGS) \
         -I $(INC_DIR)\
 		-Wall -g\
-		-fopenmp
+		-fopenmp\
+		-DLOG_CRYPTO_OUTPUT=\"$(LOG_CRYPTO_OUTPUT)\"
 
 LDFLAGS= $(OPTIMIZE_FLAGS)
 

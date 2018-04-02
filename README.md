@@ -46,14 +46,31 @@ Bayer Groth's mixnet implementation with Toom-Cook optimizations works for m = 1
 - gcc
 - NTL library
 
-### Build
-
-`make test`
-
 ### Configure
 
 Modify the `config/config` file
 
+### Build executable or shared library respectively
+
+`make` or `make lib`
+
 ### Execute
 
-`./test`
+`./bgmix`
+
+### Make Python module with Cython
+
+`python setup.py build\_ext -i`
+
+### Run as Celery application with tasks
+
+sudo mkdir /var/log/celery /var/run/celery
+sudo chown user:user /var/log/celery /var/run/celery # Ubuntu
+sudo cp default_celeryd /etc/default/
+sudo cp initd_celeryd /etc/init.d/celeryd
+sudo chmod +x /etc/init.d/celeryd
+sudo service celeryd start
+
+### Trigger task execution
+
+`python run_mixnet.py`

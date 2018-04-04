@@ -1,4 +1,7 @@
-from mixnet import mix
+from mixnet import mix, generate_ciphers
 
-r = mix.delay()
+r = generate_ciphers.delay()
 r.get()
+if r.successful():
+    r = mix.delay()
+    r.get()

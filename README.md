@@ -58,6 +58,13 @@ Modify the `config/config` file
 
 `./bgmix`
 
+### Logging
+
+By default the mixnet (library) logs messages in /var/log/celery/bg\_mixnet.log
+This behavior can be changed at compile time with:
+
+`make LOG_CRYPTO_OUTPUT=log_file_with_absolute_path`
+
 ### Make Python module with Cython
 
 `python setup.py build\_ext -i`

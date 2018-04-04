@@ -335,6 +335,19 @@ void freeCharArray(char **a, int size) {
 	delete [] a;
 }
 
+#ifdef LOG_CRYPTO_OUTPUT
+streambuf * redirect_stdout_to_log(ofstream &log) {
+	streambuf *saved_cout = cout.rdbuf();	// save cout buffer
+	cout.rdbuf(log.rdbuf());		// redirect cout buffer to log file
+	cout << "Log messages in file " << LOG_CRYPTO_OUTPUT << endl;
+	return saved_cout;
+}
+
+void redirect_log_to_stdout(streambuf *saved_cout, ofstream &log) {
+	cout.rdbuf(saved_cout);
+	log.close();
+}
+#endif
 
 void usage(long m) {
 	cout << "Invalid number of rows (m): " << m <<endl;
@@ -342,28 +355,7 @@ void usage(long m) {
 	exit(1);
 }
 
-void mix() {
-
-#ifdef LOG_CRYPTO_OUTPUT
-	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);	// log file specified in config
-	streambuf *saved_cout = cout.rdbuf();	// save cout buffer
-	cout.rdbuf(log.rdbuf());		// redirect cout buffer to log file
-	cout << "Log messages in file " << LOG_CRYPTO_OUTPUT << endl;
-#endif
-
-#if USE_REAL_POINTS
-        cout << "Cryptosystem: ElGamal on elliptic curve (Curve25519) points" << endl;
-#else
-        cout << "Cryptosystem: ElGamal on big integers" << endl;
-#endif
-	init();
-
-	const int SECRET_SIZE = 5;
-
-	srand ((unsigned int) time (NULL));
-	
-	long m = num[1];
-	long n = num[2];
+void check_usage(long m) {
 	if (m < 64)
 		usage(m);
 	// Check that m satisfies 4^x = m
@@ -373,24 +365,105 @@ void mix() {
 		pow_m = pow(4, i++);
 	if (pow_m > m)
 		usage(m);
+#if USE_REAL_POINTS
+        cout << "Cryptosystem: ElGamal on elliptic curve (Curve25519) points" << endl;
+#else
+        cout << "Cryptosystem: ElGamal on big integers" << endl;
+#endif
+}
 
-	cout << "shuffling " << n * m << " messages" <<endl;
+bool generate_ciphers(char* ciphers_file) {
+#ifdef LOG_CRYPTO_OUTPUT
+        // log file specified in config
+	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
+	streambuf *saved_cout = redirect_stdout_to_log(log);
+#endif
+	init();
+
+	long m = num[1];
+	long n = num[2];
+
+	check_usage(m);
+
+	const int SECRET_SIZE = 5;
 	unsigned char** secrets = new unsigned char* [m * n];
-	
+
+	srand ((unsigned int) time (NULL));
+
 	for (int i = 0; i < m * n; i++) {
 		secrets[i] = new unsigned char[SECRET_SIZE];
 		for (int j = 0; j < SECRET_SIZE; j++) {
 			secrets[i][j] = (char)rand();
 		}
 	}
-	
+
 	time_t begin = time(NULL);
 	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets, SECRET_SIZE, m * n, 1);
-	/*for (int i = 0; i < m; i++)
-		for (int j = 0; j < n; j++)
-			cout << "cipher " << i << " " << j << " : " << ciphers->getCMatrix()->at(i)->at(j) << endl;*/
 	time_t enc_time = time(NULL);
 	cout << "encryption time: " << enc_time - begin << endl; 
+
+	ofstream ofciphers;
+	ofciphers.open(ciphers_file);
+	if (ofciphers.fail()) {
+		cout << "cannot open ciphers file " << ciphers_file <<endl;
+		return false; // TODO should probably raise an exception
+	}
+	for (int i = 0; i < m; i++)
+		for (int j = 0; j < n; j++) {
+			ofciphers << ciphers->getCipher(i, j) << endl;
+			//cout << "cipher " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
+		}
+	ofciphers.close();
+
+	for (int i = 0; i < m * n; i++) {
+		delete [] secrets[i];
+	}
+	delete [] secrets;
+	delete ciphers;
+
+#ifdef LOG_CRYPTO_OUTPUT
+	redirect_log_to_stdout(saved_cout, log);
+#endif
+	return true;
+}
+
+bool mix(char* ciphers_file) {
+#ifdef LOG_CRYPTO_OUTPUT
+        // log file specified in config
+	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
+	streambuf *saved_cout = redirect_stdout_to_log(log);
+#endif
+	init();
+
+	long m = num[1];
+	long n = num[2];
+
+	check_usage(m);
+
+	CipherTable* ciphers = new CipherTable();
+	vector<vector<Cipher_elg>* >* cm = ciphers->getCMatrix();
+
+	ifstream ifciphers;
+	ifciphers.open(ciphers_file);
+	if (ifciphers.fail()) {
+		cout << "cannot open ciphers file " << ciphers_file <<endl;
+		return false; // TODO should probably raise an exception
+	}
+	string line;
+	for (int i = 0; i < m; i++) {
+		cm->push_back(new vector<Cipher_elg>());
+		for (int j = 0; j < n; j++) {
+			Cipher_elg el;
+			getline(ifciphers, line);
+			istringstream cipherstr(line);
+			cipherstr >> el;
+			cm->at(i)->push_back(el);
+			//cout << "secret " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
+		}
+	}
+	ifciphers.close();
+
+	cout << "shuffling " << n * m << " messages" <<endl;
 
 	time_t parse_start = time(NULL);
 	cout << "parsing input" <<endl;
@@ -422,11 +495,6 @@ void mix() {
 	cout << "Shuffle + prove + verify = " << time(NULL) - shuffle_time << endl;
 	delete ciphers;
 
-	for (int i = 0; i < m * n; i++) {
-		delete [] secrets[i];
-	}
-	delete [] secrets;
-
 
 	delete [] shuffled_ciphers;
 	delete [] proof;
@@ -437,10 +505,12 @@ void mix() {
 	} else {
 		cout << "shuffle failed!" <<endl;
 	}
+
 #ifdef LOG_CRYPTO_OUTPUT
-	cout.rdbuf(saved_cout);
-	log.close();
+	redirect_log_to_stdout(saved_cout, log);
 #endif
+
+	return ret;
 }
 
 void hello() {

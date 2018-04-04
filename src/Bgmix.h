@@ -11,7 +11,8 @@ extern "C" {
 
 void hello();
 
-void mix();
+bool generate_ciphers(char * ciphers_file);
+bool mix(char * ciphers_file);
 
 #include <stdint.h>
 

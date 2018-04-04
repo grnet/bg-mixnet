@@ -4,11 +4,18 @@
 #include <chrono>
 
 static int kNumTests = 1;
+
+void test_mix() {
+	char ciphers_file[] = "ciphers.txt";
+	generate_ciphers(ciphers_file);
+	mix(ciphers_file);
+}
+
 int main() {
 	time_t begin = time(NULL);
 	std::thread* th_arr[kNumTests];
 	for (int i = 0; i < kNumTests; i++) {
-		th_arr[i] = new std::thread(mix);
+		th_arr[i] = new std::thread(test_mix);
 	}
 
 	std::cout << "waiting for everyone..." <<std::endl;

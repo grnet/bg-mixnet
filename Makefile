@@ -38,12 +38,18 @@ LOG_CRYPTO_OUTPUT := $(if $(LOG_CRYPTO_OUTPUT),$(LOG_CRYPTO_OUTPUT),"/var/log/ce
 CFLAGS= \
         $(OPTIMIZE_FLAGS) \
         -I $(INC_DIR)\
-		-Wall -g\
-		-fopenmp
+		-Wall\
+		-Wno-unused-function\
+		-g\
+		-fopenmp\
+		-DLOG_CRYPTO_OUTPUT=\"$(LOG_CRYPTO_OUTPUT)\"
+
 CXXFLAGS=\
 	$(OPTIMIZE_FLAGS) \
         -I $(INC_DIR)\
-		-Wall -g\
+		-Wall\
+		-Wno-unused-function\
+		-g\
 		-fopenmp\
 		-DLOG_CRYPTO_OUTPUT=\"$(LOG_CRYPTO_OUTPUT)\"
 

@@ -60,7 +60,6 @@ LIBS +=  -L/usr/local/lib/ -lntl -lgmp -lboost_system  -lboost_filesystem -lpthr
 
 # source and header files
 SRCFILES = \
-	main\
 	Bgmix \
 	Cipher_elg\
 	CurvePoint\
@@ -84,27 +83,8 @@ SRCFILES = \
 	VerifierClient
 
 TESTFILES = \
-	Bgmix \
-	Cipher_elg\
-	CurvePoint\
-	ElGammal\
-	FakeZZ\
-	func_pro\
-	func_ver\
-	Functions\
-	G_q\
-	Mod_p\
-	multi_expo\
-	Pedersen\
-	Permutation\
-	Prover_toom\
-	SchnorrProof\
-	Verifier_toom\
-	CipherTable \
-	sha256\
-	NIZKProof\
-	RemoteShuffler\
-	VerifierClient
+	main\
+	$(SRCFILES)
 
 TESTOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(TESTFILES)))
 OBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(SRCFILES)))
@@ -123,18 +103,18 @@ $(OBJDIR)/%.o:%.cpp
 # all
 # -------------------------------------------------------
 ## make all  - creates software
-all: $(OBJDIR) $(OBJECTS) 
+all: lib test
+
+lib: $(OBJDIR) $(OBJECTS)
 	@echo $(RD)"    linking object files"$(NC)
-	$(CXX) $(LDFLAGS) -o $(APP) $(OBJECTS) $(LIBS)
-	cp src/Bgmix.h ./Bgmix.h
+	$(CXX) $(LDFLAGS) -shared -o $(LIBAPP) $(OBJECTS) $(LIBS)
 
 -include $(DEPENDS)
 
-lib: $(OBJDIR) $(TESTOBJECTS) 
+test: $(OBJDIR) $(TESTOBJECTS)
 	@echo $(RD)"    linking object files"$(NC)
-	$(CXX) $(LDFLAGS) -shared -o $(LIBAPP) $(TESTOBJECTS) $(LIBS)
-	cp src/Bgmix.h ./Bgmix.h
-	cp src/keys.h ./keys.h
+	$(CXX) $(LDFLAGS) -o $(APP) $(TESTOBJECTS) $(LIBS)
+
 -include $(TESTDEPENDS)
 
 # create directories
@@ -146,7 +126,7 @@ $(OBJDIR):
 
 .PHONY: clean
 clean:
-	@rm -rf $(OBJDIR) $(LCOVDIR) $(APP)
+	@rm -rf $(OBJDIR) $(LCOVDIR) $(APP) $(LIBAPP)
 
 # help
 ## make help - print this help

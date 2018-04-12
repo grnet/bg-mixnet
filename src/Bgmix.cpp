@@ -372,16 +372,20 @@ void check_usage(long m) {
 #endif
 }
 
-bool generate_ciphers(char* ciphers_file) {
+bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim_n) {
 #ifdef LOG_CRYPTO_OUTPUT
         // log file specified in config
 	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
 	streambuf *saved_cout = redirect_stdout_to_log(log);
 #endif
 	init();
+	// Override config file's cipher matrix dimensions
+	num[1] = dim_m;
+	num[2] = dim_n;
 
 	long m = num[1];
 	long n = num[2];
+	cout << "m: " << m << ", n: " << n << endl;
 
 	check_usage(m);
 
@@ -427,13 +431,16 @@ bool generate_ciphers(char* ciphers_file) {
 	return true;
 }
 
-bool mix(char* ciphers_file) {
+bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 #ifdef LOG_CRYPTO_OUTPUT
         // log file specified in config
 	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
 	streambuf *saved_cout = redirect_stdout_to_log(log);
 #endif
 	init();
+	// Override config file's cipher matrix dimensions
+	num[1] = dim_m;
+	num[2] = dim_n;
 
 	long m = num[1];
 	long n = num[2];

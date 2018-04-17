@@ -56,7 +56,9 @@ CXXFLAGS=\
 LDFLAGS= $(OPTIMIZE_FLAGS)
 
 # libraries to link against
-LIBS +=  -L/usr/local/lib/ -lntl -lgmp -lboost_system  -lboost_filesystem -lpthread -lboost_regex -lboost_thread -lboost_context -lgomp
+LIBS +=  -L/usr/local/lib/ -lntl -lgmp -lboost_system  -lboost_filesystem -lboost_regex -lboost_thread -lboost_context -lgomp
+LIBSTEST = -L /usr/local/lib -l pthread
+LIBBGMIX = -L . -l bgmix
 
 # source and header files
 SRCFILES = \
@@ -83,8 +85,7 @@ SRCFILES = \
 	VerifierClient
 
 TESTFILES = \
-	main\
-	$(SRCFILES)
+	main
 
 TESTOBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(TESTFILES)))
 OBJECTS = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(SRCFILES)))
@@ -113,7 +114,7 @@ lib: $(OBJDIR) $(OBJECTS)
 
 test: $(OBJDIR) $(TESTOBJECTS)
 	@echo $(RD)"    linking object files"$(NC)
-	$(CXX) $(LDFLAGS) -o $(APP) $(TESTOBJECTS) $(LIBS)
+	$(CXX) $(LDFLAGS) -o $(APP) $(TESTOBJECTS) $(LIBSTEST) $(LIBBGMIX)
 
 -include $(TESTDEPENDS)
 

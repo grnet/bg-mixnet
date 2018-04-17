@@ -45,14 +45,19 @@ Bayer Groth's mixnet implementation with Toom-Cook optimizations works for m = 1
 - make
 - gcc
 - NTL library
+- jsoncpp library
+```lang=bash
+cd /usr/local/include
+sudo wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp
+```
 
 ### Configure
 
 Modify the `config/config` file
 
-### Build executable or shared library respectively
+### Build test executable and shared library
 
-`make` or `make lib`
+`make`
 
 ### Execute
 
@@ -71,13 +76,15 @@ This behavior can be changed at compile time with:
 
 ### Run as Celery application with tasks
 
+```lang=bash
 sudo mkdir /var/log/celery /var/run/celery
 sudo chown user:user /var/log/celery /var/run/celery # Ubuntu
 sudo cp default_celeryd /etc/default/
 sudo cp initd_celeryd /etc/init.d/celeryd
 sudo chmod +x /etc/init.d/celeryd
 sudo service celeryd start
+```
 
 ### Trigger task execution
 
-`python run_mixnet.py`
+`python run_mixnet.py <cipher matrix rows> <cipher matrix columns>`

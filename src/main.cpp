@@ -7,7 +7,7 @@
 static int kNumTests = 1;
 
 void test_mix(long dim_m, long dim_n) {
-	char ciphers_file[] = "ciphers.txt";
+	char ciphers_file[] = "ciphers.json";
 	generate_ciphers(ciphers_file, dim_m, dim_n);
 	mix(ciphers_file, dim_m, dim_n);
 }

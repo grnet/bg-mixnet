@@ -108,25 +108,45 @@ void Cipher_elg::expo(Cipher_elg& a, const Cipher_elg& el, const ZZ ex){
 
 //Output operator, the format of a ciphertext is (u,v) (modular mod)
 ostream& operator <<(ostream&os, const Cipher_elg b){
-	os << "(";
+	os << "[\"";
         os << b.get_u();
-        os << ",";
+	/* Don't put <space> between val_u and val_v.
+	   The format should be ["val_u","val_v"]
+	   because we use the json library's dump function
+	   to reconstruct the cipher from the file, which eats
+	   that space symbol. */
+        os << "\",\"";
         os << b.get_v();
-        os << ")";
+        os << "\"]";
         return os;
 }
 
 //Input operator,
 istream& operator >>(istream& is, Cipher_elg& el){
 	CurvePoint val_u, val_v; ZZ mod;
-	char ch1, ch2, ch3;
+	char ch1, ch2, ch3, ch5;
 	//char str1, str2, str3, str4;
 	is >> ch1;
-        is >> val_u;
+	cout << "ch1: " << ch1 << endl;
         is >> ch2;
-        is >> val_v;
+	cout << "ch2: " << ch2 << endl;
+        is >> val_u;
+	cout << "val_u: " << val_u << endl;
+        is >> ch2;
+	cout << "ch2: " << ch2 << endl;
         is >> ch3;
-	if (ch1 != '(' || ch2 !=',' || ch3 != ')'){// || str3 != '(' || str4 != ')' ){
+	cout << "ch3: " << ch3 << endl;
+        is >> ch2;
+	cout << "ch2: " << ch2 << endl;
+        is >> val_v;
+	cout << "val_v: " << val_v << endl;
+        is >> ch2;
+	cout << "ch2: " << ch2 << endl;
+        is >> ch5;
+	cout << "ch5: " << ch5 << endl;
+	/* Don't put <space> between val_u and val_v.
+	   See the previous function */
+	if (ch1 != '[' || ch2 != '"' || ch3 !=',' || ch5 != ']'){ // || str3 != '(' || str4 != ')' ){
 		is.clear(ios_base::failbit);
 		return is;
 	}

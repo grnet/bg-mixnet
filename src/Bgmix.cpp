@@ -16,6 +16,9 @@
 #include <mutex>
 using namespace std;
 
+#include <json.hpp>
+using json = nlohmann::json;
+
 mutex gInitMutex;
 
 extern G_q H;
@@ -401,6 +404,9 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 		}
 	}
 
+	ElGammal* elgammal = (ElGammal*)create_pub_key(1);
+	G_q group = elgammal->get_group();
+
 	time_t begin = time(NULL);
 	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets, SECRET_SIZE, m * n, 1);
 	time_t enc_time = time(NULL);
@@ -412,11 +418,34 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 		cout << "cannot open ciphers file " << ciphers_file <<endl;
 		return false; // TODO should probably raise an exception
 	}
+	ofciphers << "{";
+	ofciphers << "\"generator\": \"" << group.get_gen() << "\"";
+	ofciphers << ", ";
+	ofciphers << "\"modulus\": \"" << group.get_mod() << "\"";
+	ofciphers << ", ";
+	ofciphers << "\"order\": \"" << group.get_ord() << "\"";
+	ofciphers << ", ";
+	ofciphers << "\"public\": \"" << elgammal->get_pk() << "\"";
+	ofciphers << ", ";
+	ofciphers << "\"original_ciphers\": [";
 	for (int i = 0; i < m; i++)
 		for (int j = 0; j < n; j++) {
-			ofciphers << ciphers->getCipher(i, j) << endl;
+			ofciphers << ciphers->getCipher(i, j);
+			if (!(i == m-1 && j == n-1))
+				ofciphers << ", ";
 			//cout << "cipher " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
 		}
+        ofciphers << "],";
+        ofciphers << "\"mixed_ciphers\": [";
+	for (int i = 0; i < m; i++)
+		for (int j = 0; j < n; j++) {
+			ofciphers << ciphers->getCipher(i, j);
+			if (!(i == m-1 && j == n-1))
+				ofciphers << ", ";
+			//cout << "cipher " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
+		}
+        ofciphers << "]";
+        ofciphers << "}";
 	ofciphers.close();
 
 	for (int i = 0; i < m * n; i++) {
@@ -456,14 +485,42 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 		cout << "cannot open ciphers file " << ciphers_file <<endl;
 		return false; // TODO should probably raise an exception
 	}
-	string line;
+	json crypto_ciphers_json;
+	ifciphers >> crypto_ciphers_json;
+
+	stringstream s;
+#if USE_REAL_POINTS
+	// We should never be in here: Zeus works with ElGammal big ints
+        CurvePoint generator = curve_basepoint();
+#else
+	s << crypto_ciphers_json.at("generator").get<string>();
+	CurvePoint generator = zz_to_curve_pt(ZZ(NTL::conv<NTL::ZZ>(s.str().c_str())));
+	s.str("");  // Clear stream
+#endif
+	cout << "generator: " << generator << endl;
+
+	s << crypto_ciphers_json.at("order").get<string>();
+	cout << "order: " << s.str() << endl;
+	ZZ order = NTL::conv<NTL::ZZ>((const char *)s.str().c_str());
+	s.str("");  // Clear stream
+
+	s << crypto_ciphers_json.at("modulus").get<string>();
+	cout << "modulus: " << s.str() << endl;
+	ZZ modulus = ZZ(NTL::conv<NTL::ZZ>((const char *)s.str().c_str()));
+	s.str("");  // Clear stream
+
+	// Override the init() setup
+        G = G_q(generator, order, modulus);
+        H = G_q(generator, order, modulus);
+
+	auto ciphers_array = crypto_ciphers_json["original_ciphers"];
 	for (int i = 0; i < m; i++) {
 		cm->push_back(new vector<Cipher_elg>());
 		for (int j = 0; j < n; j++) {
 			Cipher_elg el;
-			getline(ifciphers, line);
-			istringstream cipherstr(line);
-			cipherstr >> el;
+			string str_crypto = ciphers_array[i*n + j].dump();
+			istringstream istr_crypto(str_crypto);
+			istr_crypto >> el;
 			cm->at(i)->push_back(el);
 			//cout << "secret " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
 		}

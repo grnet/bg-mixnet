@@ -12,6 +12,7 @@
 #define __FUNCTIONS_H__
 
 #include <vector>
+#include <map>
 #include "G_q.h"
 #include "Mod_p.h"
 #include "Cipher_elg.h"
@@ -28,6 +29,15 @@ public:
 	//read the config file and sets the parameters and the groups
 	static void read_config(const string& config_file, vector<long> & num, ZZ & genq);
 	static void sha256(string input, unsigned char* out_buf);
+
+	static void set_crypto_ciphers_from_json(const char *ciphers_file,
+						 vector<vector<Cipher_elg>* >& C,
+						 const long m, const long n);
+
+	static void print_crypto(const map<string, string>& crypto);
+
+	static void print_cipher_matrix(const vector<vector<Cipher_elg>* >& C,
+					const long m, const long n);
 
 	static void parse_ciphers(string& f, long m, vector<vector<Cipher_elg>* >& C, ElGammal* elgammal);
 	static string ciphers_to_str(vector<vector<Cipher_elg>* >* ciphers);

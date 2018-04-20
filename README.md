@@ -45,11 +45,6 @@ Bayer Groth's mixnet implementation with Toom-Cook optimizations works for m = 1
 - make
 - gcc
 - NTL library
-- jsoncpp library
-```lang=bash
-cd /usr/local/include
-sudo wget https://raw.githubusercontent.com/nlohmann/json/develop/single_include/nlohmann/json.hpp
-```
 
 ### Configure
 

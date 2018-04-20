@@ -18,7 +18,7 @@
 NTL_CLIENT
 
 #include <cmath>
-#include<vector>
+#include <vector>
 #include <iostream>
 #include <time.h>
 #include <fstream>
@@ -26,6 +26,10 @@ NTL_CLIENT
 #include <random>
 #include <unistd.h>
 #include "sha256.h"
+
+#include <string>
+#include <map>
+#include <algorithm> // erase()
 
 using namespace std;
 
@@ -35,6 +39,14 @@ extern G_q H;
 //OpenMP config
 extern bool parallel;
 extern int num_threads;
+
+static const int NR_JSON_KEYS = 6; // gen, ord, mod, public, {original, mixed}_ciphers
+static const int KEY_LENGTH = 50;
+static const int VALUE_LENGTH = 10000;
+static char raw_key[KEY_LENGTH];
+static char value[VALUE_LENGTH];
+static char json_structure;
+static string chars_clean(" :,\"[");
 
 
 Functions::Functions() {}
@@ -104,6 +116,178 @@ void Functions::read_config(const string& name, vector<long> & num, ZZ & genq){
 	}
 	else{
 	}
+}
+
+void clean(string &s) {
+	for (string::iterator it = chars_clean.begin(); it != chars_clean.end(); it++)
+		s.erase(remove(s.begin(), s.end(), *it), s.end());
+}
+
+CurvePoint extract_set_cipher(const char *c_cipher) {
+	CurvePoint cipher;
+	string s_cipher(c_cipher);
+	clean(s_cipher);
+	istringstream is_cipher(s_cipher);
+	is_cipher >> cipher;
+	return cipher;
+}
+
+void parse_cipher_matrix(ifstream& ifciphers, vector<vector<Cipher_elg>* >& C,
+				const long m, const long n) {
+	CurvePoint alpha, beta;
+
+	// Eat ":" and " " characters between the key and value
+	ifciphers.ignore(VALUE_LENGTH, '[');
+	// Get the '[' that is in front of us
+	ifciphers.get(json_structure);
+	json_structure = ifciphers.peek();
+	if (json_structure == ']') {
+		cerr << "Ciphers matrix is empty" << endl;
+		exit(1);
+	}
+
+	for (int i = 0; i < m; i++) {
+		C.push_back(new vector<Cipher_elg>());
+		for (int j = 0; j < n; j++) {
+			// Get alpha
+			ifciphers.get(value, VALUE_LENGTH, ',');
+			alpha = extract_set_cipher(value);
+
+			// Get beta
+			ifciphers.get(value, VALUE_LENGTH, ']');
+			beta = extract_set_cipher(value);
+
+			// H.get_mod(): see Cipher_elg.cpp::operator>>()
+			C.at(i)->push_back(Cipher_elg(alpha, beta, H.get_mod()));
+
+			ifciphers.get(json_structure); // get cipher's ']'
+			ifciphers.get(json_structure);
+			// Eat "," and " " characters between ciphers
+			while (json_structure != '[' && json_structure != ']')
+				ifciphers.get(json_structure);
+			// Cipher matrix ended
+			if (json_structure == ']')
+				break;
+		}
+	}
+}
+
+void Functions::print_crypto(const map<string, string>& crypto) {
+	cout << "generator: " << crypto.at("generator") << endl;
+	cout << "modulus: " << crypto.at("modulus") << endl;
+	cout << "order: " << crypto.at("order") << endl;
+	cout << "public_key: " << crypto.at("public") << endl;
+}
+
+void Functions::print_cipher_matrix(const vector<vector<Cipher_elg>* >& C,
+					const long m, const long n) {
+	for (int i = 0; i < m; i++)
+		for (int j = 0; j < n; j++)
+		cout << "Cipher " << C.at(i)->at(j) << endl;
+}
+
+string get_next_json_key(ifstream& ifciphers) {
+	ifciphers.get(raw_key, KEY_LENGTH, ':');
+	string json_key(raw_key);
+	clean(json_key);
+	return json_key;
+}
+
+bool find_json_key(ifstream& ifciphers, const string& json_key) {
+	string current_key("");
+	bool found = false;
+	while (!found && !ifciphers.eof()) {
+		current_key = get_next_json_key(ifciphers);
+		found = json_key == current_key;
+	}
+	return found;
+}
+
+void extract_fill_crypto(ifstream& ifciphers, map<string, string>& crypto,
+				bool& passedby_ciphers) {
+	string json_key;
+	char value_delimiter;
+	size_t iteration = 0;
+	while (any_of(crypto.begin(), crypto.end(),
+			[](map<string, string>::const_reference i){
+				return i.second.empty();})) {
+		iteration++;
+		json_key = get_next_json_key(ifciphers);
+		value_delimiter = iteration < NR_JSON_KEYS ? ',' : '}';
+
+		try {
+			crypto.at(json_key);
+			ifciphers.get(value, VALUE_LENGTH, value_delimiter);
+			string s_value(value);
+			clean(s_value);
+			crypto[json_key] = s_value;
+		} catch (out_of_range e) {
+			if (json_key == "original_ciphers")
+				passedby_ciphers = true;
+			else if (json_key == "mixed_ciphers")
+				;
+			else {
+				cerr << "Unexpected json key " << json_key << endl;
+				exit(1);
+			}
+		}
+	}
+}
+
+void Functions::set_crypto_ciphers_from_json(const char *ciphers_file,
+			vector<vector<Cipher_elg>* >& C,
+			const long m, const long n) {
+	ifstream ifciphers;
+	ifciphers.open(ciphers_file);
+	if (ifciphers.fail()) {
+		cout << "cannot open ciphers file " << ciphers_file <<endl;
+		exit(1);
+	}
+
+	ifciphers.get(json_structure);
+	if (json_structure != '{') {
+		cerr << "Unexpected structure" << endl;
+		cerr << "Expected '{' found " << json_structure << endl;
+		exit(1);
+	}
+
+	map<string, string> crypto {
+		{"generator", ""},
+		{"order", ""},
+		{"modulus", ""},
+		{"public", ""}
+	};
+	bool passedby_ciphers = false;
+	extract_fill_crypto(ifciphers, crypto, passedby_ciphers);
+	if (passedby_ciphers) {
+		ifciphers.clear();
+		ifciphers.seekg(0, ios::beg);
+	}
+
+#if USE_REAL_POINTS
+        // We should never be in here: Zeus works with ElGammal big ints
+	CurvePoint generator = curve_basepoint();
+#else
+	CurvePoint generator =
+		zz_to_curve_pt(ZZ(NTL::conv<NTL::ZZ>(crypto["generator"].c_str())));
+#endif
+	ZZ order = NTL::conv<NTL::ZZ>(crypto["order"].c_str());
+	ZZ modulus= NTL::conv<NTL::ZZ>(crypto["modulus"].c_str());
+
+	// Override the init() setup
+	G = G_q(generator, order, modulus);
+	H = G_q(generator, order, modulus);
+
+	string original_ciphers("original_ciphers");
+	if (!find_json_key(ifciphers, original_ciphers)) {
+		cerr << "Key 'original_ciphers' not found in JSON file" << endl;
+		exit(1);
+	}
+	parse_cipher_matrix(ifciphers, C, m, n);
+	ifciphers.close();
+
+	//print_crypto(crypto);
+	//print_cipher_matrix(mixed_ciphers);
 }
 
 

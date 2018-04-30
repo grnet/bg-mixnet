@@ -30,7 +30,7 @@ public:
 	static void read_config(const string& config_file, vector<long> & num, ZZ & genq);
 	static void sha256(string input, unsigned char* out_buf);
 
-	static void set_crypto_ciphers_from_json(const char *ciphers_file,
+	static ElGammal* set_crypto_ciphers_from_json(const char *ciphers_file,
 						 vector<vector<Cipher_elg>* >& C,
 						 const long m, const long n);
 

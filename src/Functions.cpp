@@ -42,6 +42,7 @@ extern int num_threads;
 
 static const int NR_JSON_KEYS = 6; // gen, ord, mod, public, {original, mixed}_ciphers
 static const int KEY_LENGTH = 50;
+static const long SKIP_LENGTH = 1000000000000;
 static const int VALUE_LENGTH = 10000;
 static char raw_key[KEY_LENGTH];
 static char value[VALUE_LENGTH];
@@ -183,10 +184,11 @@ void Functions::print_cipher_matrix(const vector<vector<Cipher_elg>* >& C,
 					const long m, const long n) {
 	for (int i = 0; i < m; i++)
 		for (int j = 0; j < n; j++)
-		cout << "Cipher " << C.at(i)->at(j) << endl;
+		cout << "Cipher( " << i << ", " << j << "): " << C.at(i)->at(j) << endl;
 }
 
 string get_next_json_key(ifstream& ifciphers) {
+	ifciphers.ignore(SKIP_LENGTH, '"');
 	ifciphers.get(raw_key, KEY_LENGTH, ':');
 	string json_key(raw_key);
 	clean(json_key);
@@ -196,7 +198,9 @@ string get_next_json_key(ifstream& ifciphers) {
 bool find_json_key(ifstream& ifciphers, const string& json_key) {
 	string current_key("");
 	bool found = false;
-	while (!found && !ifciphers.eof()) {
+	int i = 0;
+	while (!found && !ifciphers.eof() && i < NR_JSON_KEYS) {
+		i++;
 		current_key = get_next_json_key(ifciphers);
 		found = json_key == current_key;
 	}
@@ -222,11 +226,11 @@ void extract_fill_crypto(ifstream& ifciphers, map<string, string>& crypto,
 			clean(s_value);
 			crypto[json_key] = s_value;
 		} catch (out_of_range e) {
-			if (json_key == "original_ciphers")
+			if (json_key == "original_ciphers") {
 				passedby_ciphers = true;
-			else if (json_key == "mixed_ciphers")
+			} else if (json_key == "mixed_ciphers") {
 				;
-			else {
+			} else {
 				cerr << "Unexpected json key " << json_key << endl;
 				exit(1);
 			}
@@ -234,22 +238,27 @@ void extract_fill_crypto(ifstream& ifciphers, map<string, string>& crypto,
 	}
 }
 
-void Functions::set_crypto_ciphers_from_json(const char *ciphers_file,
-			vector<vector<Cipher_elg>* >& C,
-			const long m, const long n) {
-	ifstream ifciphers;
-	ifciphers.open(ciphers_file);
-	if (ifciphers.fail()) {
-		cout << "cannot open ciphers file " << ciphers_file <<endl;
-		exit(1);
-	}
-
+void check_json_structure(ifstream &ifciphers) {
 	ifciphers.get(json_structure);
 	if (json_structure != '{') {
 		cerr << "Unexpected structure" << endl;
 		cerr << "Expected '{' found " << json_structure << endl;
 		exit(1);
 	}
+}
+
+ElGammal* Functions::set_crypto_ciphers_from_json(const char *ciphers_file,
+			vector<vector<Cipher_elg>* >& C,
+			const long m, const long n) {
+
+	ifstream ifciphers;
+	ifciphers.open(ciphers_file);
+	if (ifciphers.fail()) {
+		cerr << "cannot open ciphers file " << ciphers_file <<endl;
+		exit(1);
+	}
+
+	check_json_structure(ifciphers);
 
 	map<string, string> crypto {
 		{"generator", ""},
@@ -262,6 +271,7 @@ void Functions::set_crypto_ciphers_from_json(const char *ciphers_file,
 	if (passedby_ciphers) {
 		ifciphers.clear();
 		ifciphers.seekg(0, ios::beg);
+		check_json_structure(ifciphers);
 	}
 
 #if USE_REAL_POINTS
@@ -272,11 +282,18 @@ void Functions::set_crypto_ciphers_from_json(const char *ciphers_file,
 		zz_to_curve_pt(ZZ(NTL::conv<NTL::ZZ>(crypto["generator"].c_str())));
 #endif
 	ZZ order = NTL::conv<NTL::ZZ>(crypto["order"].c_str());
-	ZZ modulus= NTL::conv<NTL::ZZ>(crypto["modulus"].c_str());
+	ZZ modulus = NTL::conv<NTL::ZZ>(crypto["modulus"].c_str());
 
 	// Override the init() setup
 	G = G_q(generator, order, modulus);
 	H = G_q(generator, order, modulus);
+
+	ElGammal* elgammal = new ElGammal();
+	elgammal->set_group(G);
+	Mod_p pk;
+	istringstream is_pk(crypto["public"]);
+	is_pk >> pk;
+	elgammal->set_pk(pk);
 
 	string original_ciphers("original_ciphers");
 	if (!find_json_key(ifciphers, original_ciphers)) {
@@ -286,8 +303,7 @@ void Functions::set_crypto_ciphers_from_json(const char *ciphers_file,
 	parse_cipher_matrix(ifciphers, C, m, n);
 	ifciphers.close();
 
-	//print_crypto(crypto);
-	//print_cipher_matrix(mixed_ciphers);
+	return elgammal;
 }
 
 

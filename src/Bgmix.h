@@ -69,7 +69,7 @@ void* shuffle_internal(void* reenc_key,
 void prove(void* cached_shuffle,
            char** proof_out, int* proof_len,
            char** public_randoms, int* public_randoms_len);
-int verify(int key_index,
+int verify(void* elgammal,
            char* proof, int proof_len,
            char* ciphers_in, int len,
            char* post_shuffle_cipehrs, int post_shuffle_cipehrs_len,

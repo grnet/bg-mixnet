@@ -336,15 +336,17 @@ void freeCharArray(char **a, int size) {
 }
 
 #ifdef LOG_CRYPTO_OUTPUT
-streambuf * redirect_stdout_to_log(ofstream &log) {
-	streambuf *saved_cout = cout.rdbuf();	// save cout buffer
+void redirect_streams_to_log(ofstream &log, streambuf **saved_cout, streambuf **saved_cerr) {
+	*saved_cout = cout.rdbuf();	// save cout buffer
+	*saved_cerr = cerr.rdbuf();	// save cout buffer
 	cout.rdbuf(log.rdbuf());		// redirect cout buffer to log file
+	cerr.rdbuf(log.rdbuf());		// redirect cout buffer to log file
 	cout << "Log messages in file " << LOG_CRYPTO_OUTPUT << endl;
-	return saved_cout;
 }
 
-void redirect_log_to_stdout(streambuf *saved_cout, ofstream &log) {
+void redirect_log_to_streams(streambuf *saved_cout, streambuf *saved_cerr, ofstream &log) {
 	cout.rdbuf(saved_cout);
+	cerr.rdbuf(saved_cerr);
 	log.close();
 }
 #endif
@@ -376,7 +378,8 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 #ifdef LOG_CRYPTO_OUTPUT
         // log file specified in config
 	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
-	streambuf *saved_cout = redirect_stdout_to_log(log);
+	streambuf *saved_cout, *saved_cerr;
+	redirect_streams_to_log(log, &saved_cout, &saved_cerr);
 #endif
 	init();
 	// Override config file's cipher matrix dimensions
@@ -452,7 +455,7 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	delete ciphers;
 
 #ifdef LOG_CRYPTO_OUTPUT
-	redirect_log_to_stdout(saved_cout, log);
+	redirect_log_to_streams(saved_cout, saved_cerr, log);
 #endif
 	return true;
 }
@@ -461,7 +464,8 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 #ifdef LOG_CRYPTO_OUTPUT
         // log file specified in config
 	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
-	streambuf *saved_cout = redirect_stdout_to_log(log);
+	streambuf *saved_cout, *saved_cerr;
+        redirect_streams_to_log(log, &saved_cout, &saved_cerr);
 #endif
 	init();
 	// Override config file's cipher matrix dimensions
@@ -476,8 +480,8 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	CipherTable* ciphers = new CipherTable();
 	vector<vector<Cipher_elg>* >* cm = ciphers->getCMatrix();
 
-	Functions::set_crypto_ciphers_from_json(ciphers_file, *cm, m, n);
-
+	ElGammal *elgammal = Functions::set_crypto_ciphers_from_json(ciphers_file,
+									*cm, m, n);
 	cout << "shuffling " << n * m << " messages" <<endl;
 
 	time_t parse_start = time(NULL);
@@ -495,7 +499,6 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	int public_randoms_len;
 	
 	cout << "shuffle begins!" <<endl;
-	ElGammal* elgammal = (ElGammal*)create_pub_key(1);
 	char* input = (char*)shuffle_input.c_str();
 	time_t shuffle_time = time(NULL);
 	void *cached_shuffle = shuffle_internal(elgammal, input, shuffle_input.size(), m*n, &shuffled_ciphers, &shuffled_ciphers_len, &permutation, &permutation_len);
@@ -505,7 +508,7 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	cout << "proof is done! In " << time(NULL) - prove_time << endl;
 
 	time_t verify_time = time(NULL);
-	int ret = verify(1, proof, proof_len, input, shuffle_input.size(), shuffled_ciphers, shuffled_ciphers_len, public_randoms, public_randoms_len);
+	int ret = verify(elgammal, proof, proof_len, input, shuffle_input.size(), shuffled_ciphers, shuffled_ciphers_len, public_randoms, public_randoms_len);
 	cout << "verification is done! In " << time(NULL) - verify_time << endl;
 	cout << "Shuffle + prove + verify = " << time(NULL) - shuffle_time << endl;
 	delete ciphers;
@@ -522,7 +525,7 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	}
 
 #ifdef LOG_CRYPTO_OUTPUT
-	redirect_log_to_stdout(saved_cout, log);
+	redirect_log_to_streams(saved_cout, saved_cerr, log);
 #endif
 
 	return ret;
@@ -593,13 +596,12 @@ void prove(void *cache_data, char** proof_out, int* proof_len, char** public_ran
         delete P;
 }
 
-int verify(int key_index, char* proof, int proof_len, char* ciphers_in, int len_in, char* post_shuffle_cipehrs, int post_shuffle_cipehrs_len, char* public_randoms, int public_randoms_len) {
+int verify(void *elgammal, char* proof, int proof_len, char* ciphers_in, int len_in, char* post_shuffle_cipehrs, int post_shuffle_cipehrs_len, char* public_randoms, int public_randoms_len) {
 	init();
-	ElGammal* elgammal = (ElGammal*) create_pub_key(key_index);
 	string inp(ciphers_in, len_in);
 	string out(post_shuffle_cipehrs, post_shuffle_cipehrs_len);
-	CipherTable c(inp, m, elgammal);
-	CipherTable C(out, m, elgammal);
+	CipherTable c(inp, m, (ElGammal*)elgammal);
+	CipherTable C(out, m, (ElGammal*)elgammal);
 	
 	if ((c.rows() != C.rows()) || (c.cols() != C.cols())) {
 		return false;
@@ -608,15 +610,13 @@ int verify(int key_index, char* proof, int proof_len, char* ciphers_in, int len_
 	string in_rands(public_randoms, public_randoms_len);
 	istringstream respstream(in_rands);
 	
-	VerifierClient V(num, C.rows(), C.cols(), c.getCMatrix(), C.getCMatrix(), elgammal, false, true);
+	VerifierClient V(num, C.rows(), C.cols(), c.getCMatrix(), C.getCMatrix(), (ElGammal*)elgammal, false, true);
 	V.set_public_vector(respstream, c.cols(), num[3], num[7], num[4]);
 	string proof_s(proof, proof_len);
         delete[] public_randoms;
 	if (V.process_nizk(proof_s)) {
-		delete elgammal;
 		return 1;
 	}
-	delete elgammal;
 	return 0;
 }
 

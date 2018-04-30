@@ -5,8 +5,8 @@
 #include "FakeZZ.h"
 NTL_CLIENT
 
-/* Use elliptic curve points? */
-#define USE_REAL_POINTS 1
+/* Use elliptic curve points? Compiler macro definition */
+//#define USE_REAL_POINTS 1
 
 /* Size of those curve points points when serialized */
 /* Either 128 or 32. 128 does cheap serialization while 32 is expensive */

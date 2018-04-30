@@ -850,7 +850,7 @@ void Verifier_toom::check_E_red(vector<vector<Cipher_elg>* >* C, bool& b){
 	Cipher_elg temp_1,  temp_2, t_D, c_D;
 	vector<ZZ>* x_temp= new vector<ZZ>(4);
 	vector<ZZ>* chal_1_temp= new vector<ZZ>(4);
-	vector<ZZ>* chal_2_temp= new vector<ZZ>(4);    // size 4 causes crash for m>64; works with 8 (m=128), but shuffle fails
+	vector<ZZ>* chal_2_temp= new vector<ZZ>(4);
 	vector<vector<Cipher_elg>* >* C_small_temp=0;
 	//vector<Cipher_elg>* row_C;
 
@@ -898,7 +898,7 @@ void Verifier_toom::check_E_red(vector<vector<Cipher_elg>* >* C, bool& b){
 
 	Mod_p::expo(temp, gen,a_bar);
 	temp_2 = elgammal_->encrypt(temp, rho_bar);
-	multi_expo::expo_mult(temp_1, C_small_temp, chal_2_temp, B_bar, omega);  // crash because of chal_2_temp size
+	multi_expo::expo_mult(temp_1, C_small_temp, chal_2_temp, B_bar, omega);
 	Cipher_elg::mult(c_D,temp_1,temp_2);
 	//c_D=temp_2*temp_1;
 

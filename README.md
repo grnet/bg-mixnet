@@ -13,15 +13,19 @@ The Stadium mixnet's efficiency is significantly improved over both the original
 
 | Computing environment            | Mixnet                     | Total (sec) | Verify (sec) | Prove (sec) | Shuffle (sec) |
 |:--------------------------------:|:----------------------------------:| -----------:| ------------:| -----------:| -------------:|
-| Linux Ubuntu VM, 2 CPU, 4 GB RAM | non-interactive: m = 64, n = 1563  |   67         |  12          |   42         |  13           |
-| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium: m = 64, n =  1563         |   36         |   9          |   21         |   6           |
-| Linux Ubuntu VM, 2 CPU, 4 GB RAM | Stadium: m = 64, n = 15625         |  924         | 154          |  644         | 126           |
-| Linux Ubuntu VM, 8 CPU, 8 GB RAM | Stadium: m = 64, n = 15625         |  413         | 94           |  267         |  52           |
-| Linux Ubuntu VM, 8 CPU, 8 GB RAM | Stadium: m = 256, n = 3907         |  419         | 89           |  277         |  53           |
-| Linux Ubuntu VM, 8 CPU, 8 GB RAM | Stadium: m = 1024, n = 977         |  574         | 91          |   430         |  53           |
-| Linux Ubuntu VM, 8 CPU, 8 GB RAM | Stadium: m = 4096, n = 256         | 1422         | 110          | 1253         |  59           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM  | non-interactive: m = 64, n = 1563  |   67         |   12           |   42         |   13           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM  | Stadium: m = 64, n =  1563         |   36         |    9           |   21         |    6           |
+| Linux Ubuntu VM, 2 CPU, 4 GB RAM  | Stadium: m = 64, n = 15625         |  924         | 154            |  644         |  126           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 64, n = 15625         |  413         |  94            |  267         |   52           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stad-Zeus: m = 64, n = 1563        |  801         |  98            |  526         |  177           |
+| Debian (stereo), 8 CPU, 12 GB RAM | Stad-Zeus: m = 64, n = 15625       | 9121         | 998            | 5557         | 2566           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 256, n = 3907         |  419         |  89            |  277         |   53           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 1024, n = 977         |  574         |  91            |  430         |   53           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 4096, n = 256         | 1422         | 110            | 1253         |   59           |
 
 In their paper (see [README-stadium.md](https://github.com/grnet/bg-mixnet/blob/master/README-stadium.md)), the authors show that in a single server installation, Stadium's efficiency improves linearly with the number of available cores in the system. The presented experiment results agree with this pattern.
+
+For 1M ciphers (64 * 15625) the resident set size (RSS) reached 8.5 GB RAM.
 
 ### Limitations
 
@@ -67,7 +71,7 @@ This behavior can be changed at compile time with:
 
 ### Make Python module with Cython
 
-`python setup.py build\_ext -i`
+`python setup.py build_ext -i`
 
 ### Run as Celery application with tasks
 

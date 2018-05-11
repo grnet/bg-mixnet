@@ -158,7 +158,7 @@ void* encrypt_with_proof(void** in_secrets, int secretLen, int arrayLen, int key
         s->proofs = new char[s->proofs_size];
 	Functions::createCipherWithProof(my_secrets, m, num_cols, arrayLen, ret->getCMatrix(), ret->getElementsMatrix(), s->proofs, elgammal);
 
-	ret->set_dimentions(m, num_cols);
+	ret->set_dimensions(m, num_cols);
 	delete my_secrets;
 	delete_key(elgammal);
         s->ciphertexts = ret;
@@ -217,7 +217,7 @@ void* elg_encrypt(void** in_secrets, int secretLen, int arrayLen, int keyIndex) 
 	CipherTable* ret = new CipherTable();
 	vector<vector<ZZ> >* my_secrets = buildSecretsVector(secrects, secretLen, arrayLen);
 	Functions::createCipher(my_secrets, m, num_cols, arrayLen, ret->getCMatrix(), ret->getElementsMatrix(), elgammal);
-	ret->set_dimentions(m, num_cols);
+	ret->set_dimensions(m, num_cols);
 	delete my_secrets;
 	delete_key(elgammal);
 	return ret;
@@ -453,6 +453,7 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	}
 	delete [] secrets;
 	delete ciphers;
+	delete elgammal;
 
 #ifdef LOG_CRYPTO_OUTPUT
 	redirect_log_to_streams(saved_cout, saved_cerr, log);
@@ -477,20 +478,18 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 
 	check_usage(m);
 
-	CipherTable* ciphers = new CipherTable();
-	vector<vector<Cipher_elg>* >* cm = ciphers->getCMatrix();
+	CipherTable* input_ciphers = new CipherTable();
+	input_ciphers->set_dimensions(m, n);
+	vector<vector<Cipher_elg>* >* cm = input_ciphers->getCMatrix();
 
+	cout << "Load and parse ciphers...";
 	ElGammal *elgammal = Functions::set_crypto_ciphers_from_json(ciphers_file,
 									*cm, m, n);
-	cout << "shuffling " << n * m << " messages" <<endl;
+	cout << "completed." << endl;
+	cout << "Shuffling " << n * m << " messages." <<endl;
 
 	time_t parse_start = time(NULL);
-	cout << "parsing input" <<endl;
-	string shuffle_input(ciphers->encode_all_ciphers());
-	cout << "done parsing. " << time(NULL) - parse_start << endl;
 
-	char* shuffled_ciphers;
-	int shuffled_ciphers_len;
 	char* proof;
 	int proof_len;
 	int* permutation;
@@ -498,23 +497,22 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	char* public_randoms;
 	int public_randoms_len;
 	
-	cout << "shuffle begins!" <<endl;
-	char* input = (char*)shuffle_input.c_str();
 	time_t shuffle_time = time(NULL);
-	void *cached_shuffle = shuffle_internal(elgammal, input, shuffle_input.size(), m*n, &shuffled_ciphers, &shuffled_ciphers_len, &permutation, &permutation_len);
-	cout << "shuffle is done! In " << time(NULL) - shuffle_time << endl;
+	void *cached_shuffle = shuffle_internal(elgammal, m*n, input_ciphers, &permutation, &permutation_len);
+	CipherTable* shuffled_ciphers = new CipherTable(((RemoteShuffler*)cached_shuffle)->getC(), m);
+	cout << "Shuffle is done! In " << time(NULL) - shuffle_time << endl;
         time_t prove_time = time(NULL);
 	prove(cached_shuffle, &proof, &proof_len, &public_randoms, &public_randoms_len);
-	cout << "proof is done! In " << time(NULL) - prove_time << endl;
+	cout << "Proof is done! In " << time(NULL) - prove_time << endl;
 
 	time_t verify_time = time(NULL);
-	int ret = verify(elgammal, proof, proof_len, input, shuffle_input.size(), shuffled_ciphers, shuffled_ciphers_len, public_randoms, public_randoms_len);
+	int ret = verify(elgammal, proof, proof_len, input_ciphers, shuffled_ciphers, public_randoms, public_randoms_len);
 	cout << "verification is done! In " << time(NULL) - verify_time << endl;
 	cout << "Shuffle + prove + verify = " << time(NULL) - shuffle_time << endl;
-	delete ciphers;
 
-
-	delete [] shuffled_ciphers;
+	delete elgammal;
+	delete input_ciphers;
+	delete shuffled_ciphers;
 	delete [] proof;
 	delete [] permutation;
 
@@ -536,27 +534,14 @@ void hello() {
 }
 
 // returns a pointer caching shuffle data
-void *shuffle_internal(void* reenc_key, char* ciphers_in, int ciphers_array_len, int number_of_elements, char** shuffled_ciphers, int* shuffled_ciphers_len, int** permutation, int* permutation_len) {
+void *shuffle_internal(void* reenc_key, int number_of_elements, void *ciphers, int** permutation, int* permutation_len) {
 	init();
-	
+
+	CipherTable *input_ciphers = (CipherTable *)ciphers;
 	int number_of_cols = Functions::get_num_cols(m, number_of_elements);
-	string inp(ciphers_in, ciphers_array_len);
-	
-	CipherTable input(inp, m, (ElGammal*)reenc_key);
-	vector<vector<Cipher_elg>* >* c = input.getCMatrix(); // contains the original input ciphertexts
 
-        // c does not return safely! it's on the stack...so we must make a copy
-        vector<vector<Cipher_elg>* >* c_copy = new vector<vector<Cipher_elg>* >(c->size());
-        for (unsigned int i = 0; i < c->size(); i++) {
-          vector<Cipher_elg> *temp = new vector<Cipher_elg>(*(c->at(i)));
-          c_copy->at(i) = temp;
-        }
-
-	RemoteShuffler *P = new RemoteShuffler(num, c_copy, (ElGammal*)reenc_key, m, number_of_cols, true);
-	
-	CipherTable output(P->getC(), m);
-	int element_size;
-	*shuffled_ciphers = (char*) get_ciphertexts(&output, shuffled_ciphers_len, &element_size);
+	cerr << "Initiate remote shuffler" << endl;
+	RemoteShuffler *P = new RemoteShuffler(num, input_ciphers->getCMatrix(), (ElGammal*)reenc_key, m, number_of_cols, true);
 	
 	vector<long> reversed;
 	P->reverse_permutation(reversed);
@@ -579,6 +564,7 @@ void prove(void *cache_data, char** proof_out, int* proof_len, char** public_ran
         RemoteShuffler *P = (RemoteShuffler*) cache_data;
 
 	string proof = P->create_nizk();
+	cout << "Nizk done." << endl;
 
 	*proof_len = proof.size();
 	*proof_out = new char [*proof_len + 1];
@@ -596,22 +582,20 @@ void prove(void *cache_data, char** proof_out, int* proof_len, char** public_ran
         delete P;
 }
 
-int verify(void *elgammal, char* proof, int proof_len, char* ciphers_in, int len_in, char* post_shuffle_cipehrs, int post_shuffle_cipehrs_len, char* public_randoms, int public_randoms_len) {
+int verify(void *elgammal, char* proof, int proof_len, void* ciphers_in, void* post_shuffle_cipehrs, char* public_randoms, int public_randoms_len) {
 	init();
-	string inp(ciphers_in, len_in);
-	string out(post_shuffle_cipehrs, post_shuffle_cipehrs_len);
-	CipherTable c(inp, m, (ElGammal*)elgammal);
-	CipherTable C(out, m, (ElGammal*)elgammal);
+	CipherTable *c = (CipherTable *)ciphers_in;
+	CipherTable *C = (CipherTable *)post_shuffle_cipehrs;
 	
-	if ((c.rows() != C.rows()) || (c.cols() != C.cols())) {
+	if ((c->rows() != C->rows()) || (c->cols() != C->cols())) {
 		return false;
 	}
 	
 	string in_rands(public_randoms, public_randoms_len);
 	istringstream respstream(in_rands);
 	
-	VerifierClient V(num, C.rows(), C.cols(), c.getCMatrix(), C.getCMatrix(), (ElGammal*)elgammal, false, true);
-	V.set_public_vector(respstream, c.cols(), num[3], num[7], num[4]);
+	VerifierClient V(num, C->rows(), C->cols(), c->getCMatrix(), C->getCMatrix(), (ElGammal*)elgammal, false, true);
+	V.set_public_vector(respstream, c->cols(), num[3], num[7], num[4]);
 	string proof_s(proof, proof_len);
         delete[] public_randoms;
 	if (V.process_nizk(proof_s)) {

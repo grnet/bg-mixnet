@@ -27,7 +27,7 @@ class CipherTable {
 	
 	int rows();
 	int cols();
-	void set_dimentions(int m, int n);
+	void set_dimensions(int m, int n);
 	
 	string encode_all_ciphers();
   private:

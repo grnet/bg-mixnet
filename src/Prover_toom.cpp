@@ -131,6 +131,8 @@ Prover_toom::~Prover_toom() {
 
 	delete r_D_h;
 	delete c_D_h;
+
+	if (A != NULL) Functions::delete_vector(A);
 	if (B != NULL) Functions::delete_vector(B);
 	if (basis_B != NULL) Functions::delete_vector(basis_B);
 	delete B_0;

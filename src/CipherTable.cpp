@@ -72,7 +72,7 @@ int CipherTable::cols() {
 	return n_;
 }
 
-void CipherTable::set_dimentions(int m, int n) {
+void CipherTable::set_dimensions(int m, int n) {
 	m_ = m;
 	n_ = n;
 }

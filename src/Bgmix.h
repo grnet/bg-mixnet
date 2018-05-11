@@ -63,16 +63,16 @@ void* decrypt_cipher(void* ciphers, int i, int j, void* len, void* elgamal);
 
 
 void* shuffle_internal(void* reenc_key,
-                       char* ciphers_in, int ciphers_array_len, int number_of_elements,
-                       char** shuffled_ciphers, int* shuffled_ciphers_len,
+                       int number_of_elements,
+                       void* input_ciphers,
                        int** permutation, int* permutation_len);
 void prove(void* cached_shuffle,
            char** proof_out, int* proof_len,
            char** public_randoms, int* public_randoms_len);
 int verify(void* elgammal,
            char* proof, int proof_len,
-           char* ciphers_in, int len,
-           char* post_shuffle_cipehrs, int post_shuffle_cipehrs_len,
+           void* ciphers_in,
+           void* post_shuffle_cipehrs,
            char* public_randoms, int public_randoms_len);
 
 #ifdef __cplusplus

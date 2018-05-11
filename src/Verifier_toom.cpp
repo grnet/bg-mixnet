@@ -108,6 +108,7 @@ Verifier_toom::~Verifier_toom() {
 	delete Ds_bar;
 
 	delete c_B_small;
+	//delete C_small;
 	delete c_a_c;
 	delete C_c;
 }

@@ -17,15 +17,15 @@ The Stadium mixnet's efficiency is significantly improved over both the original
 | Linux Ubuntu VM, 2 CPU, 4 GB RAM  | Stadium: m = 64, n =  1563         |   36         |    9           |   21         |    6           |
 | Linux Ubuntu VM, 2 CPU, 4 GB RAM  | Stadium: m = 64, n = 15625         |  924         | 154            |  644         |  126           |
 | Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 64, n = 15625         |  413         |  94            |  267         |   52           |
-| Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stad-Zeus: m = 64, n = 1563        |  801         |  98            |  526         |  177           |
-| Debian (stereo), 8 CPU, 12 GB RAM | Stad-Zeus: m = 64, n = 15625       | 9121         | 998            | 5557         | 2566           |
+| Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium-Zeus: m = 64, n = 1563     |  801         |  98            |  526         |  177           |
+| Debian (stereo), 8 CPU, 12 GB RAM | Stadium-Zeus: m = 64, n = 15625    | 9121         | 998            | 5557         | 2566           |
 | Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 256, n = 3907         |  419         |  89            |  277         |   53           |
 | Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 1024, n = 977         |  574         |  91            |  430         |   53           |
 | Linux Ubuntu VM, 8 CPU, 8 GB RAM  | Stadium: m = 4096, n = 256         | 1422         | 110            | 1253         |   59           |
 
 In their paper (see [README-stadium.md](https://github.com/grnet/bg-mixnet/blob/master/README-stadium.md)), the authors show that in a single server installation, Stadium's efficiency improves linearly with the number of available cores in the system. The presented experiment results agree with this pattern.
 
-For 1M ciphers (64 * 15625) the resident set size (RSS) reached 8.5 GB RAM.
+Stadium-Zeus regards the software setting where the cryptosystem and the ciphers are provided by GRNET's Zeus e-voting system (see [run_mixnet.py](https://github.com/grnet/bg-mixnet/blob/master/run_mixnet.py#L30). In this setting, more computational resources are required to make ends meet both in terms of CPU time and memory space. Regading memory space, for 1M ciphers (64 * 15625) the resident set size (RSS) peaked at 8.5 GB RAM.
 
 ### Limitations
 

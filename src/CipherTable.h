@@ -18,6 +18,7 @@ class CipherTable {
 	CipherTable();
 	CipherTable(string& ciphers, long m, ElGammal* elgammal);
 	CipherTable(vector<vector<Cipher_elg>* >* ciphers, long m);
+	CipherTable(vector<vector<Cipher_elg>* >* ciphers, long m, const bool owner);
 	virtual ~CipherTable();
 	vector<vector<Cipher_elg>* >* getCMatrix();
 	vector<vector<Mod_p>* >* getElementsMatrix();

@@ -19,12 +19,13 @@ RemoteShuffler::RemoteShuffler(const vector<long>& config, vector<vector<Cipher_
 }
 
 RemoteShuffler::~RemoteShuffler() {
-	/*if (owner_) {
+	if (owner_) {
 		if (c != nullptr) Functions::delete_vector(c);
-	}*/
+	}
 	/* C is passed to VerifierClient and used in round 10
 	   (Verifier_toom.cpp:round_10()) so it can't be freed here.
 	   It is freed at the end of round_10(). */
+	if (C != nullptr) delete C;
 	if (pi != nullptr) Functions::delete_vector(pi);
 	if (R != nullptr) Functions::delete_vector(R);
 	if (P != nullptr) delete P;

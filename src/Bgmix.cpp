@@ -58,7 +58,7 @@ void* create_pub_key(int key_id) {
 	ist.open(fname);
 	if (ist.fail()) {
 		cout << "cannot open key file " << fname <<endl;
-		return false; // TODO should probably raise an exception
+		exit(1); // TODO should probably raise an exception
 	} 
 	string line;
 	getline(ist, line);
@@ -488,8 +488,6 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	cout << "completed." << endl;
 	cout << "Shuffling " << n * m << " messages." <<endl;
 
-	time_t parse_start = time(NULL);
-
 	char* proof;
 	int proof_len;
 	int* permutation;
@@ -499,7 +497,7 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	
 	time_t shuffle_time = time(NULL);
 	void *cached_shuffle = shuffle_internal(elgammal, m*n, input_ciphers, &permutation, &permutation_len);
-	CipherTable* shuffled_ciphers = new CipherTable(((RemoteShuffler*)cached_shuffle)->getC(), m);
+	CipherTable* shuffled_ciphers = new CipherTable(((RemoteShuffler*)cached_shuffle)->getC(), m, true);
 	cout << "Shuffle is done! In " << time(NULL) - shuffle_time << endl;
         time_t prove_time = time(NULL);
 	prove(cached_shuffle, &proof, &proof_len, &public_randoms, &public_randoms_len);
@@ -541,7 +539,7 @@ void *shuffle_internal(void* reenc_key, int number_of_elements, void *ciphers, i
 	int number_of_cols = Functions::get_num_cols(m, number_of_elements);
 
 	cerr << "Initiate remote shuffler" << endl;
-	RemoteShuffler *P = new RemoteShuffler(num, input_ciphers->getCMatrix(), (ElGammal*)reenc_key, m, number_of_cols, true);
+	RemoteShuffler *P = new RemoteShuffler(num, input_ciphers->getCMatrix(), (ElGammal*)reenc_key, m, number_of_cols, false);
 	
 	vector<long> reversed;
 	P->reverse_permutation(reversed);

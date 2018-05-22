@@ -108,7 +108,7 @@ Verifier_toom::~Verifier_toom() {
 	delete Ds_bar;
 
 	delete c_B_small;
-	//delete C_small;
+	if (C_small != nullptr) delete C_small;
 	delete c_a_c;
 	delete C_c;
 }
@@ -905,6 +905,7 @@ void Verifier_toom::check_E_red(vector<vector<Cipher_elg>* >* C, bool& b){
 
 	multi_expo::expo_mult(t_D, E, basis_chal_x8 , omega);
 	Functions::delete_vector(C_small);
+	C_small = NULL; // Avoid re-deletion.
 	Functions::delete_vector(C_small_temp);
 	delete chal_2_temp;
 	delete chal_1_temp;

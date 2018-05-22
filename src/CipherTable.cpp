@@ -23,6 +23,16 @@ CipherTable::CipherTable(vector<vector<Cipher_elg>* >* ciphers, long m): m_(m), 
 	}
 }
 
+CipherTable::CipherTable(vector<vector<Cipher_elg>* >* ciphers, long m, const bool owner):
+									m_(m), owner_(owner){
+	C_ = *ciphers;
+	if (m == 0) {
+		n_ = 0;
+	} else {
+		n_ = C_.at(0)->size();
+	}
+}
+
 CipherTable::~CipherTable() {
 	if (owner_) {
 		for (unsigned int i = 0; i < C_.size(); i++) {

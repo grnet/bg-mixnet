@@ -341,7 +341,6 @@ void redirect_streams_to_log(ofstream &log, streambuf **saved_cout, streambuf **
 	*saved_cerr = cerr.rdbuf();	// save cout buffer
 	cout.rdbuf(log.rdbuf());		// redirect cout buffer to log file
 	cerr.rdbuf(log.rdbuf());		// redirect cout buffer to log file
-	cout << "Log messages in file " << LOG_CRYPTO_OUTPUT << endl;
 }
 
 void redirect_log_to_streams(streambuf *saved_cout, streambuf *saved_cerr, ofstream &log) {
@@ -380,6 +379,7 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
 	streambuf *saved_cout, *saved_cerr;
 	redirect_streams_to_log(log, &saved_cout, &saved_cerr);
+	cout << __func__ << "(): Log messages in file " << LOG_CRYPTO_OUTPUT << endl;
 #endif
 	init();
 	// Override config file's cipher matrix dimensions
@@ -388,7 +388,6 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 
 	long m = num[1];
 	long n = num[2];
-	cout << "m: " << m << ", n: " << n << endl;
 
 	check_usage(m);
 
@@ -467,6 +466,7 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	ofstream log(LOG_CRYPTO_OUTPUT, ofstream::out | ofstream::app);
 	streambuf *saved_cout, *saved_cerr;
         redirect_streams_to_log(log, &saved_cout, &saved_cerr);
+	cout << __func__ << "(): Log messages in file " << LOG_CRYPTO_OUTPUT << endl;
 #endif
 	init();
 	// Override config file's cipher matrix dimensions
@@ -486,7 +486,7 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	ElGammal *elgammal = Functions::set_crypto_ciphers_from_json(ciphers_file,
 									*cm, m, n);
 	cout << "completed." << endl;
-	cout << "Shuffling " << n * m << " messages." <<endl;
+	cout << "Shuffling " << n * m << " messages (m: " << m << ", n: " << n << ")" << endl;
 
 	char* proof;
 	int proof_len;
@@ -538,7 +538,6 @@ void *shuffle_internal(void* reenc_key, int number_of_elements, void *ciphers, i
 	CipherTable *input_ciphers = (CipherTable *)ciphers;
 	int number_of_cols = Functions::get_num_cols(m, number_of_elements);
 
-	cerr << "Initiate remote shuffler" << endl;
 	RemoteShuffler *P = new RemoteShuffler(num, input_ciphers->getCMatrix(), (ElGammal*)reenc_key, m, number_of_cols, false);
 	
 	vector<long> reversed;
@@ -562,7 +561,6 @@ void prove(void *cache_data, char** proof_out, int* proof_len, char** public_ran
         RemoteShuffler *P = (RemoteShuffler*) cache_data;
 
 	string proof = P->create_nizk();
-	cout << "Nizk done." << endl;
 
 	*proof_len = proof.size();
 	*proof_out = new char [*proof_len + 1];

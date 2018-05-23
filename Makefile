@@ -26,7 +26,7 @@ SRC_DIR   = src
 VPATH = $(SRC_DIR)
 
 OPTIMIZE_FLAGS=-O2 -flto
-# OPTIMIZE_FLAGS=-O0
+# OPTIMIZE_FLAGS=-O0 -g
 
 # tools 
 CC = gcc -std=c++0x -fPIC
@@ -40,7 +40,6 @@ CFLAGS= \
         -I $(INC_DIR)\
 		-Wall\
 		-Wno-unused-function\
-		-g\
 		-fopenmp\
 		-DLOG_CRYPTO_OUTPUT=\"$(LOG_CRYPTO_OUTPUT)\"
 		#-DUSE_REAL_POINTS=1
@@ -50,7 +49,6 @@ CXXFLAGS=\
         -I $(INC_DIR)\
 		-Wall\
 		-Wno-unused-function\
-		-g\
 		-fopenmp\
 		-DLOG_CRYPTO_OUTPUT=\"$(LOG_CRYPTO_OUTPUT)\"
 		#-DUSE_REAL_POINTS=1

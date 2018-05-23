@@ -66,7 +66,7 @@ string VerifierClient::round2(const string& input_file, ZZ* challenge, ZZ* rando
 	string output_file = V->round_2(input_file, challenge, random);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 2 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 2 " << ttime << " second(s)." << endl;
 	time_v+=ttime;
 	return output_file;
 }
@@ -76,7 +76,7 @@ string VerifierClient::round2(const string& input_file, ZZ& challenge, ZZ& rando
 	string output_file = V->round_2(input_file, challenge, random);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 2 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 2 " << ttime << " second(s)." << endl;
 	time_v+=ttime;
 	return output_file;
 }
@@ -105,7 +105,7 @@ string VerifierClient::round6(const string& input_file, ZZ* challenge, ZZ* rand)
 	output_file = V->round_6(input_file, challenge, rand);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 6 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 6 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -117,7 +117,7 @@ string VerifierClient::round6(const string& input_file, ZZ& challenge, ZZ& rand)
 	output_file = V->round_6(input_file, challenge, rand);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 6 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 6 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -132,7 +132,7 @@ string VerifierClient::round6red(const string& input_file, ZZ* challenge, ZZ* ra
 	m_r=m_r/mu;
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 6 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 6 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -144,7 +144,7 @@ string VerifierClient::round6red(const string& input_file, ZZ& challenge, ZZ& ra
 	m_r=m_r/mu;
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 6 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 6 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -155,7 +155,7 @@ string VerifierClient::round6red_1(const string& input_file, ZZ* challenge, ZZ* 
 	output_file = V->round_6_red1(input_file, challenge, rand);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 6 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 6 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -166,7 +166,7 @@ string VerifierClient::round6red_1(const string& input_file, ZZ& challenge, ZZ& 
 	output_file = V->round_6_red1(input_file, challenge, rand);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 6 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 6 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -176,7 +176,7 @@ string VerifierClient::round8(const string& input_file, ZZ* challenge, ZZ* rand)
 	string output_file = V->round_8(input_file, challenge, rand);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 8 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 8 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -186,7 +186,7 @@ string VerifierClient::round8(const string& input_file, ZZ& challenge, ZZ& rand)
 	string output_file = V->round_8(input_file, challenge, rand);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 8 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 8 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 	return output_file;
 }
@@ -197,7 +197,7 @@ bool VerifierClient::round10(const string& input_file) {
 	output = V->round_10(input_file, c, C);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 10 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 10 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 
 	//ofstream ost("shuffle_with_toom_cook_V.txt",ios::app);
@@ -212,7 +212,7 @@ bool VerifierClient::round10red(const string& input_file) {
 	output = V->round_10_red(input_file, c, C);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 10 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 10 " << ttime << " second(s)." << endl;
 	time_v += ttime;
 
 	//ofstream ost("shuffle_with_toom_cook_V.txt",ios::app);

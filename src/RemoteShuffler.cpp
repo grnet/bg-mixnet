@@ -56,16 +56,13 @@ vector<vector<Cipher_elg>* >* RemoteShuffler::permute_and_reencrypt(ElGammal* re
 }
 
 string RemoteShuffler::create_nizk() {
-	cout << "Enter nizk." << endl;
 	NIZKProof proof;
 
 	string v;
 	ZZ c,r;
 	string input_for_next_prover;
 	
-	cout << "Initiate Prover_toom." << endl;
 	P = new Prover_toom(m_r_, C,R,pi,config_, m, n, key);
-	cout << "Initiate VerifierClient." << endl;
 	verifier_ = new VerifierClient(config_, m, n, this->c, C, key, false, false);
 
 	v = round1(&input_for_next_prover, &c, &r);
@@ -100,7 +97,7 @@ string RemoteShuffler::round1(string* input_for_next_prover, ZZ* challenge, ZZ* 
 	string input_to_V = P->round_1();
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 1 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 1 " << ttime << " second(s)." << endl;
 	
 	time_p+=ttime;
 	*input_for_next_prover = verifier_->round2(input_to_V, challenge, randomness);
@@ -112,7 +109,7 @@ string RemoteShuffler::round3(const string& input_file, string* input_for_next_p
 	string input_to_V = P->round_3(input_file);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	cout << "Time for round 3 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 3 " << ttime << " second(s)." << endl;
 	time_p+=ttime;
 	*input_for_next_prover = verifier_->round4(input_to_V, challenge, randomness);
 	
@@ -124,7 +121,7 @@ string RemoteShuffler::round5(const string& input_file, string* input_for_next_p
 	string input_to_V = P->round_5(input_file);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 5 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 5 " << ttime << " second(s)." << endl;
 	
 	*input_for_next_prover = verifier_->round6(input_to_V, challenge, randomness);
 	
@@ -138,7 +135,7 @@ string RemoteShuffler::round5red(const string& input_file, string* input_for_nex
 	m_r_ /= mu;
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 5 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 5 " << ttime << " second(s)." << endl;
 	*input_for_next_prover = verifier_->round6red(input_to_V, challenge, randomness);
 	
 	time_p+=ttime;
@@ -150,7 +147,7 @@ string RemoteShuffler::round5red_1(const string& input_file, string* input_for_n
 	string input_to_V = P->round_5_red1(input_file);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 5 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 5 " << ttime << " second(s)." << endl;
 	*input_for_next_prover = verifier_->round6red_1(input_to_V, challenge, randomness);
 	time_p+=ttime;
 	return input_to_V;
@@ -161,7 +158,7 @@ string RemoteShuffler::round7(const string& input_file, string* input_for_next_p
 	string input_to_V = P->round_7(input_file);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 7 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 7 " << ttime << " second(s)." << endl;
 	*input_for_next_prover = verifier_->round8(input_to_V, challenge, randomness);
 	time_p+=ttime;
 	return input_to_V;
@@ -172,7 +169,7 @@ string RemoteShuffler::round7red(const string& input_file, string* input_for_nex
 	string input_to_V = P->round_7_red(input_file);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 7 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 7 " << ttime << " second(s)." << endl;
 	*input_for_next_prover = verifier_->round8(input_to_V, challenge, randomness);
 	time_p+=ttime;
 	return input_to_V;
@@ -185,7 +182,7 @@ string RemoteShuffler::round9(const string& input_file) {
 	output_file = P->round_9(input_file);
 	auto tstop = high_resolution_clock::now();
 	double ttime= duration<double>(tstop-tstart).count();
-	 cout << "Time for round 9 " << ttime << " second(s)." << endl;
+	// cout << "Time for round 9 " << ttime << " second(s)." << endl;
 	time_p+=ttime;
 
 	//ofstream ost("shuffle_with_toom_cook_P.txt", ios::app);

@@ -13,7 +13,7 @@ except IndexError:
 try:
     dim_n = long(sys.argv[2])
 except IndexError:
-    dim_n = 2
+    dim_n = 4
 
 try:
     ciphers_file = sys.argv[3]
@@ -24,7 +24,7 @@ CHUNKS = multiprocessing.cpu_count()
 ciphers_file_exists = False
 
 try:
-    from zeus_legacy.zeus.core import ZeusCoreElection
+    from zeus.core import ZeusCoreElection
 
     if not os.path.isfile(ciphers_file):
         election = ZeusCoreElection()

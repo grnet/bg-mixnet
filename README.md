@@ -25,7 +25,7 @@ The Stadium mixnet's efficiency is significantly improved over both the original
 
 In their paper (see [README-stadium.md](https://github.com/grnet/bg-mixnet/blob/master/README-stadium.md)), the authors show that in a single server installation, Stadium's efficiency improves linearly with the number of available cores in the system. The presented experiment results agree with this pattern.
 
-Stadium-Zeus regards the software setting where the cryptosystem and the ciphers are provided by GRNET's Zeus e-voting system (see [run_mixnet.py](https://github.com/grnet/bg-mixnet/blob/master/run_mixnet.py#L30). In this setting, more computational resources are required to make ends meet both in terms of CPU time and memory space. Regading memory space, for 1M ciphers (64 * 15625) the resident set size (RSS) peaked at 8.5 GB RAM.
+Stadium-Zeus regards the software setting where the cryptosystem and the ciphers are provided by GRNET's Zeus e-voting system (see [run_mixnet.py](https://github.com/grnet/bg-mixnet/blob/master/run_mixnet.py#L30)). In this setting, more computational resources are required to make ends meet both in terms of CPU time and memory space. Regading memory space, for 1M ciphers (64 * 15625) the resident set size (RSS) peaked at 8.5 GB RAM.
 
 ### Limitations
 
@@ -46,9 +46,17 @@ Bayer Groth's mixnet implementation with Toom-Cook optimizations works for m = 1
 
 ### Software dependencies
 
-- make
-- gcc
-- NTL library
+- Make
+- GCC
+- NTL library (>=10.5.0)
+- GMP
+- Boost
+- OpenMP (comes with GCC >=4.2)
+
+Remember to set `LD_LIBRARY_PATH` to the install location of the shared libraries.
+For convenience, you can export the variable in your favorite shell profile, say `~/.bashrc`, e.g.:
+
+`export LD_LIBRARY_PATH=/usr/local/lib`
 
 ### Configure
 
@@ -58,13 +66,16 @@ Modify the `config/config` file
 
 `make`
 
+By default the bgmix shared library (`libbgmix.so`) is installed in the local directory.
+Again, for convenience, you can add the path to `LD_LIBRARY_PATH` as before to avoid specifying it when invoking executables that link to it.
+
 ### Execute
 
 `./bgmix`
 
 ### Logging
 
-By default the mixnet (library) logs messages in /var/log/celery/bg\_mixnet.log
+By default the mixnet (library) logs messages in /var/log/celery/bg\_mixnet.log.
 This behavior can be changed at compile time with:
 
 `make LOG_CRYPTO_OUTPUT=log_file_with_absolute_path`
@@ -72,6 +83,12 @@ This behavior can be changed at compile time with:
 ### Make Python module with Cython
 
 `python setup.py build_ext -i`
+
+### Zeus integration
+
+After cloning the current repository, clone [GRNET Zeus](https://github.com/grnet/zeus) and export PYTHONPATH to point to Zeus's root directory, e.g.
+
+`export PYTHONPATH="/home/user/zeus"`
 
 ### Run as Celery application with tasks
 

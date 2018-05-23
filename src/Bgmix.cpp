@@ -350,22 +350,22 @@ void redirect_log_to_streams(streambuf *saved_cout, streambuf *saved_cerr, ofstr
 }
 #endif
 
-void usage(long m) {
-	cout << "Invalid number of rows (m): " << m <<endl;
-	cout << "Requirement: 4^x = m for integer x > 2" <<endl;
+void usage(long m, long n) {
+	cout << "Invalid number of rows (m): " << m << " or columns (n): " << n << endl;
+	cout << "Requirements: 4^x = m for integer x > 2, n >= 4" <<endl;
 	exit(1);
 }
 
-void check_usage(long m) {
-	if (m < 64)
-		usage(m);
+void check_usage(long m, long n) {
+	if (m < 64 || n < 4)
+		usage(m, n);
 	// Check that m satisfies 4^x = m
 	int i = 3;
 	long pow_m = 64;
         while (pow_m < m)
 		pow_m = pow(4, i++);
 	if (pow_m > m)
-		usage(m);
+		usage(m, n);
 #if USE_REAL_POINTS
         cout << "Cryptosystem: ElGamal on elliptic curve (Curve25519) points" << endl;
 #else
@@ -389,7 +389,7 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	long m = num[1];
 	long n = num[2];
 
-	check_usage(m);
+	check_usage(m, n);
 
 	const int SECRET_SIZE = 5;
 	unsigned char** secrets = new unsigned char* [m * n];
@@ -476,7 +476,7 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	long m = num[1];
 	long n = num[2];
 
-	check_usage(m);
+	check_usage(m, n);
 
 	CipherTable* input_ciphers = new CipherTable();
 	input_ciphers->set_dimensions(m, n);

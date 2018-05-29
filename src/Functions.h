@@ -16,6 +16,7 @@
 #include "G_q.h"
 #include "Mod_p.h"
 #include "Cipher_elg.h"
+#include "CipherTable.h"
 #include "ElGammal.h"
 #include "Pedersen.h"
 #include "FakeZZ.h"
@@ -30,6 +31,11 @@ public:
 	static void read_config(const string& config_file, vector<long> & num, ZZ & genq);
 	static void sha256(string input, unsigned char* out_buf);
 
+	static void write_crypto_ciphers_to_file(const char *ciphers_file,
+						CipherTable *ciphers,
+						CipherTable *mixed_ciphers,
+						ElGammal *elgammal,
+						long m, long n);
 	static ElGammal* set_crypto_ciphers_from_json(const char *ciphers_file,
 						 vector<vector<Cipher_elg>* >& C,
 						 const long m, const long n);

@@ -404,48 +404,14 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	}
 
 	ElGammal* elgammal = (ElGammal*)create_pub_key(1);
-	G_q group = elgammal->get_group();
 
 	time_t begin = time(NULL);
 	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets, SECRET_SIZE, m * n, 1);
 	time_t enc_time = time(NULL);
 	cout << "encryption time: " << enc_time - begin << endl; 
 
-	ofstream ofciphers;
-	ofciphers.open(ciphers_file);
-	if (ofciphers.fail()) {
-		cout << "cannot open ciphers file " << ciphers_file <<endl;
-		return false; // TODO should probably raise an exception
-	}
-	ofciphers << "{";
-	ofciphers << "\"generator\": " << group.get_gen();
-	ofciphers << ", ";
-	ofciphers << "\"modulus\": " << group.get_mod();
-	ofciphers << ", ";
-	ofciphers << "\"order\": " << group.get_ord();
-	ofciphers << ", ";
-	ofciphers << "\"public\": " << elgammal->get_pk();
-	ofciphers << ", ";
-	ofciphers << "\"original_ciphers\": [";
-	for (int i = 0; i < m; i++)
-		for (int j = 0; j < n; j++) {
-			ofciphers << ciphers->getCipher(i, j);
-			if (!(i == m-1 && j == n-1))
-				ofciphers << ", ";
-			//cout << "cipher " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
-		}
-        ofciphers << "],";
-        ofciphers << "\"mixed_ciphers\": [";
-	for (int i = 0; i < m; i++)
-		for (int j = 0; j < n; j++) {
-			ofciphers << ciphers->getCipher(i, j);
-			if (!(i == m-1 && j == n-1))
-				ofciphers << ", ";
-			//cout << "cipher " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
-		}
-        ofciphers << "]";
-        ofciphers << "}";
-	ofciphers.close();
+	Functions::write_crypto_ciphers_to_file(ciphers_file, ciphers, NULL, elgammal,
+										m, n);
 
 	for (int i = 0; i < m * n; i++) {
 		delete [] secrets[i];
@@ -508,6 +474,8 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	cout << "verification is done! In " << time(NULL) - verify_time << endl;
 	cout << "Shuffle + prove + verify = " << time(NULL) - shuffle_time << endl;
 
+	Functions::write_crypto_ciphers_to_file(ciphers_file, input_ciphers,
+						shuffled_ciphers, elgammal, m, n);
 	delete elgammal;
 	delete input_ciphers;
 	delete shuffled_ciphers;

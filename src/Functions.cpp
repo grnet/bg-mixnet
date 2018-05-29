@@ -119,6 +119,50 @@ void Functions::read_config(const string& name, vector<long> & num, ZZ & genq){
 	}
 }
 
+void Functions::write_crypto_ciphers_to_file(const char *ciphers_file, CipherTable *ciphers,
+					CipherTable *mixed_ciphers, ElGammal *elgammal,
+					long m, long n) {
+	ofstream ofciphers;
+	ofciphers.open(ciphers_file);
+	if (ofciphers.fail()) {
+		cout << "cannot open ciphers file " << ciphers_file <<endl;
+		exit(1); // TODO should probably raise an exception
+	}
+	G_q group = elgammal->get_group();
+
+	ofciphers << "{";
+	ofciphers << "\"generator\": " << group.get_gen();
+	ofciphers << ", ";
+	ofciphers << "\"modulus\": " << group.get_mod();
+	ofciphers << ", ";
+	ofciphers << "\"order\": " << group.get_ord();
+	ofciphers << ", ";
+	ofciphers << "\"public\": " << elgammal->get_pk();
+	ofciphers << ", ";
+	ofciphers << "\"original_ciphers\": [";
+	for (int i = 0; i < m; i++)
+		for (int j = 0; j < n; j++) {
+			ofciphers << ciphers->getCipher(i, j);
+			if (!(i == m-1 && j == n-1))
+				ofciphers << ", ";
+			//cout << "cipher " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
+		}
+        ofciphers << "],";
+        ofciphers << "\"mixed_ciphers\": [";
+	if (mixed_ciphers != NULL) {
+		for (int i = 0; i < m; i++)
+			for (int j = 0; j < n; j++) {
+				ofciphers << mixed_ciphers->getCipher(i, j);
+				if (!(i == m-1 && j == n-1))
+					ofciphers << ", ";
+				//cout << "cipher " << i << " " << j << " : " << ciphers->getCipher(i, j) << endl;
+			}
+	}
+        ofciphers << "]";
+        ofciphers << "}";
+	ofciphers.close();
+}
+
 void clean(string &s) {
 	for (string::iterator it = chars_clean.begin(); it != chars_clean.end(); it++)
 		s.erase(remove(s.begin(), s.end(), *it), s.end());

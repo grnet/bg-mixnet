@@ -376,9 +376,8 @@ string Functions::tostring(long n){
 }
 
 //ygi:THIS IS IT PARAL
-void Functions::createCipher(vector<vector<ZZ> >* secrets, int m, int n, int N, vector<vector<Cipher_elg>* >* C, vector<vector<Mod_p>* >* elements, ElGammal* enc_key) {
+void Functions::createCipher(vector<vector<ZZ> >* secrets, int m, int n, vector<vector<Cipher_elg>* >* C, vector<vector<Mod_p>* >* elements, ElGammal* enc_key) {
 	ZZ ord = H.get_ord();
-	atomic<std::int32_t> count(1);
 
 	for (long i = 0; i < m; i++) {
 		C->push_back(new vector<Cipher_elg>(n));
@@ -392,16 +391,8 @@ void Functions::createCipher(vector<vector<ZZ> >* secrets, int m, int n, int N, 
 			ZZ ran_2 = RandomBnd(ord);
 			Cipher_elg temp;
 			Mod_p ran_1;
-			if (count.fetch_add(1) <= N){
-				ran_1 = H.map_to_group_element(secrets->at(i).at(j));
-				temp = enc_key->encrypt(ran_1, ran_2);
-			}
-			else
-			{
-				ZZ x(RandomBnd(ord));
-				ran_1 = H.map_to_group_element(x);
-				temp = enc_key->encrypt(ran_1,ran_2);
-			}
+			ran_1 = H.map_to_group_element(secrets->at(i).at(j));
+			temp = enc_key->encrypt(ran_1, ran_2);
 			C->at(i)->at(j)=temp;
 			elements->at(i)->at(j) = ran_1;
 		}

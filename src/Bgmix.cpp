@@ -115,25 +115,14 @@ string key_index_to_fname(int key_index) {
 }
 
 
-vector<vector<ZZ> >* buildSecretsVector(const unsigned char** secrects, int secretLen, int array_len) {
+vector<vector<ZZ> >* buildSecretsVector(const unsigned char** secrects, int secretLen, int n) {
 	vector<vector<ZZ> >* ret = new vector<vector<ZZ> >(m);
 	vector<ZZ> r;
 
-	int count = 0;
-	int num_cols = Functions::get_num_cols(m, array_len);
-	
-	for (int i=0; i<m; i++){
-		r = vector<ZZ>(num_cols);
-		for (int j = 0; j <num_cols; j++){
-			if (count < array_len){
-				r.at(j)=ZZFromBytes(secrects[count], secretLen) % H.get_ord();
-			}
-			else
-			{
-				r.at(j)=RandomBnd(H.get_ord());
-			}
-			count++;
-		}
+	for (int i = 0; i < m; i++){
+		r = vector<ZZ>(n);
+		for (int j = 0; j < n; j++)
+			r.at(j) = ZZFromBytes(secrects[i*j], secretLen) % H.get_ord();
 		ret->at(i)=r;
 	}
 	return ret;
@@ -151,7 +140,7 @@ void* encrypt_with_proof(void** in_secrets, int secretLen, int arrayLen, int key
 	ElGammal* elgammal = (ElGammal*)create_pub_key(keyIndex);
 	int num_cols = Functions::get_num_cols(m, arrayLen);
 	CipherTable* ret = new CipherTable();
-	vector<vector<ZZ> >* my_secrets = buildSecretsVector(secrects, secretLen, arrayLen);
+	vector<vector<ZZ> >* my_secrets = buildSecretsVector(secrects, secretLen, num_cols);
 
         struct ciphertexts_and_proofs *s = (struct ciphertexts_and_proofs *) malloc(sizeof(struct ciphertexts_and_proofs));
         s->proofs_size = SchnorrProof::bytesize * m * num_cols;
@@ -209,17 +198,14 @@ int verify_encrypt(void* ciphertexts, int ciphertexts_size, void* pfs, int proof
   return verified;
 }
 
-void* elg_encrypt(void** in_secrets, int secretLen, int arrayLen, int keyIndex) {
+void* elg_encrypt(void** in_secrets, int secretLen, ElGammal *elgammal, int keyIndex, long n) {
 	init();
 	const unsigned char** secrects = (const unsigned char**) in_secrets; 
-	ElGammal* elgammal = (ElGammal*)create_pub_key(keyIndex);
-	int num_cols = Functions::get_num_cols(m, arrayLen);
 	CipherTable* ret = new CipherTable();
-	vector<vector<ZZ> >* my_secrets = buildSecretsVector(secrects, secretLen, arrayLen);
-	Functions::createCipher(my_secrets, m, num_cols, arrayLen, ret->getCMatrix(), ret->getElementsMatrix(), elgammal);
-	ret->set_dimensions(m, num_cols);
+	vector<vector<ZZ> >* my_secrets = buildSecretsVector(secrects, secretLen, n);
+	Functions::createCipher(my_secrets, m, n, ret->getCMatrix(), ret->getElementsMatrix(), elgammal);
+	ret->set_dimensions(m, n);
 	delete my_secrets;
-	delete_key(elgammal);
 	return ret;
 }
 
@@ -386,7 +372,8 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	num[1] = dim_m;
 	num[2] = dim_n;
 
-	long m = num[1];
+	// m is global; see Globals.h
+	m = num[1];
 	long n = num[2];
 
 	check_usage(m, n);
@@ -406,7 +393,7 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	ElGammal* elgammal = (ElGammal*)create_pub_key(1);
 
 	time_t begin = time(NULL);
-	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets, SECRET_SIZE, m * n, 1);
+	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets, SECRET_SIZE, elgammal, 1, n);
 	time_t enc_time = time(NULL);
 	cout << "encryption time: " << enc_time - begin << endl; 
 
@@ -439,7 +426,8 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	num[1] = dim_m;
 	num[2] = dim_n;
 
-	long m = num[1];
+	// m is global; see Globals.h
+	m = num[1];
 	long n = num[2];
 
 	check_usage(m, n);

@@ -117,14 +117,13 @@ string key_index_to_fname(int key_index) {
 
 vector<vector<ZZ> >* buildSecretsVector(const unsigned char** secrects, int secretLen, int n) {
 	vector<vector<ZZ> >* ret = new vector<vector<ZZ> >(m);
-	vector<ZZ> r;
+	for (int i = 0; i < m; i++)
+		ret->at(i) = vector<ZZ>(n);
 
-	for (int i = 0; i < m; i++){
-		r = vector<ZZ>(n);
+	#pragma omp parallel for collapse(2) num_threads(num_threads) if(parallel)
+	for (int i = 0; i < m; i++)
 		for (int j = 0; j < n; j++)
-			r.at(j) = ZZFromBytes(secrects[i*j], secretLen) % H.get_ord();
-		ret->at(i)=r;
-	}
+			ret->at(i).at(j) = ZZFromBytes(secrects[i*j], secretLen) % H.get_ord();
 	return ret;
 }
 

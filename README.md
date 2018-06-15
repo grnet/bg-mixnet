@@ -9,7 +9,7 @@ Of particular importance are the mixnet's efficiency and limitations.
 
 ## Efficiency
 
-The Stadium mixnet's efficiency is significantly improved over both the original version and another version that uses non-interactive Toom-Cook multiplications and Keccak SHA-3 256 hash functions. Because the Stadium mixnet parallelises computations with OpenMP directives, its efficiency scales with the power of the underlying computing infrastructure. The following table presents some experiment results.
+The Stadium mixnet's efficiency is significantly improved over both the original version and another version that uses non-interactive Toom-Cook multiplications and Keccak SHA-3 256 hash functions (see the toom-cook-non-interactive-keccak branch). Because the Stadium mixnet parallelises computations with OpenMP directives, its efficiency scales with the power of the underlying computing infrastructure. The following table presents some experiment results.
 
 | Computing environment            | Mixnet                     | Total (sec) | Verify (sec) | Prove (sec) | Shuffle (sec) |
 |:--------------------------------:|:----------------------------------:| -----------:| ------------:| -----------:| -------------:|
@@ -26,6 +26,14 @@ The Stadium mixnet's efficiency is significantly improved over both the original
 In their paper (see [README-stadium.md](https://github.com/grnet/bg-mixnet/blob/master/README-stadium.md)), the authors show that in a single server installation, Stadium's efficiency improves linearly with the number of available cores in the system. The presented experiment results agree with this pattern.
 
 Stadium-Zeus regards the software setting where the cryptosystem and the ciphers are provided by GRNET's Zeus e-voting system (see [run_mixnet.py](https://github.com/grnet/bg-mixnet/blob/master/run_mixnet.py#L30)). In this setting, more computational resources are required to make ends meet both in terms of CPU time and memory space. Regading memory space, for 1M ciphers (64 * 15625) the resident set size (RSS) peaked at 8.5 GB RAM.
+
+Zeus uses ElGamal over big integers. The Stadium mixnet can use ElGamal over
+- big integers
+- points of the elliptic curve [25519](https://en.wikipedia.org/wiki/Curve25519)
+A compile macro `USE_REAL_POINTS` decides which flavor is used.
+
+The measurements of Stadium-Zeus are carried out using Zeus cryptosystem. All other measurements with the Stadium mixnet are carried out using ElGamal over the elliptic curve.
+
 
 ## Limitations
 
@@ -96,7 +104,7 @@ After cloning the current repository, clone [GRNET Zeus](https://github.com/grne
 ### IO interface between Zeus and mixnet
 
 A JSON file with the following schema:
-```
+```lang=python
 {
  'modulus': BigInt,
  'generator': BigInt,

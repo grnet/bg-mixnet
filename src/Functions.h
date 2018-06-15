@@ -34,7 +34,7 @@ public:
 	static void write_crypto_ciphers_to_file(const char *ciphers_file,
 						CipherTable *ciphers,
 						CipherTable *mixed_ciphers,
-						ElGammal *elgammal,
+						ElGammal *elgammal, string proof,
 						long m, long n);
 	static ElGammal* set_crypto_ciphers_from_json(const char *ciphers_file,
 						 vector<vector<Cipher_elg>* >& C,

@@ -4,6 +4,10 @@ NIZKProof::NIZKProof(string ser) {
 	proof_ << ser;
 }
 
+void NIZKProof::set_proof(string proof) {
+	proof_ << proof;
+}
+
 void NIZKProof::add_new_step(string& input_to_ver, ZZ& challenge, ZZ& rand) {
 	write_str(input_to_ver);
 	write_ZZ(challenge);

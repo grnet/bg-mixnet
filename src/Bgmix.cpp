@@ -392,12 +392,13 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	ElGammal* elgammal = (ElGammal*)create_pub_key(1);
 
 	time_t begin = time(NULL);
-	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets, SECRET_SIZE, elgammal, 1, n);
+	CipherTable* ciphers = (CipherTable*) elg_encrypt((void**) secrets,
+						SECRET_SIZE, elgammal, 1, n);
 	time_t enc_time = time(NULL);
 	cout << "encryption time: " << enc_time - begin << endl; 
 
-	Functions::write_crypto_ciphers_to_file(ciphers_file, ciphers, NULL, elgammal,
-										m, n);
+	Functions::write_crypto_ciphers_to_file(ciphers_file, ciphers, NULL,
+							elgammal, "", m, n);
 
 	for (int i = 0; i < m * n; i++) {
 		delete [] secrets[i];
@@ -410,6 +411,39 @@ bool generate_ciphers(const char* ciphers_file, const long dim_m, const long dim
 	redirect_log_to_streams(saved_cout, saved_cerr, log);
 #endif
 	return true;
+}
+
+// requires shuffle_internal to be called first and cached data must be passed in
+// on exit, deletes cached shuffle data
+// TODO cache freeing function may be cleaner interface
+void prove(void *cache_data, string &proof, string &pubv) {
+	init();
+
+	RemoteShuffler *P = (RemoteShuffler*) cache_data;
+
+	proof = P->create_nizk();
+	pubv = P->get_public_vector();
+
+        delete P;
+}
+
+int verify(void *elgammal, string &proof, void* ciphers_in, void* post_shuffle_cipehrs, string &public_randoms) {
+	init();
+	CipherTable *c = (CipherTable *)ciphers_in;
+	CipherTable *C = (CipherTable *)post_shuffle_cipehrs;
+
+	if ((c->rows() != C->rows()) || (c->cols() != C->cols())) {
+		return false;
+	}
+
+	istringstream respstream(public_randoms);
+
+	VerifierClient V(num, C->rows(), C->cols(), c->getCMatrix(), C->getCMatrix(), (ElGammal*)elgammal, false, true);
+	V.set_public_vector(respstream, c->cols(), num[3], num[7], num[4]);
+	if (V.process_nizk(proof)) {
+		return 1;
+	}
+	return 0;
 }
 
 bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
@@ -441,32 +475,29 @@ bool mix(const char* ciphers_file, const long dim_m, const long dim_n) {
 	cout << "completed." << endl;
 	cout << "Shuffling " << n * m << " messages (m: " << m << ", n: " << n << ")" << endl;
 
-	char* proof;
-	int proof_len;
+	string proof;
 	int* permutation;
 	int permutation_len;
-	char* public_randoms;
-	int public_randoms_len;
+	string public_randoms;
 	
 	time_t shuffle_time = time(NULL);
 	void *cached_shuffle = shuffle_internal(elgammal, m*n, input_ciphers, &permutation, &permutation_len);
 	CipherTable* shuffled_ciphers = new CipherTable(((RemoteShuffler*)cached_shuffle)->getC(), m, true);
 	cout << "Shuffle is done! In " << time(NULL) - shuffle_time << endl;
         time_t prove_time = time(NULL);
-	prove(cached_shuffle, &proof, &proof_len, &public_randoms, &public_randoms_len);
+	prove(cached_shuffle, proof, public_randoms);
 	cout << "Proof is done! In " << time(NULL) - prove_time << endl;
 
 	time_t verify_time = time(NULL);
-	int ret = verify(elgammal, proof, proof_len, input_ciphers, shuffled_ciphers, public_randoms, public_randoms_len);
+	int ret = verify(elgammal, proof, input_ciphers, shuffled_ciphers, public_randoms);
 	cout << "verification is done! In " << time(NULL) - verify_time << endl;
 	cout << "Shuffle + prove + verify = " << time(NULL) - shuffle_time << endl;
 
 	Functions::write_crypto_ciphers_to_file(ciphers_file, input_ciphers,
-						shuffled_ciphers, elgammal, m, n);
+						shuffled_ciphers, elgammal, proof, m, n);
 	delete elgammal;
 	delete input_ciphers;
 	delete shuffled_ciphers;
-	delete [] proof;
 	delete [] permutation;
 
 	if (ret) {
@@ -505,54 +536,6 @@ void *shuffle_internal(void* reenc_key, int number_of_elements, void *ciphers, i
 	*permutation = out_perm;
 
         return P;
-}
-
-// requires shuffle_internal to be called first and cached data must be passed in
-// on exit, deletes cached shuffle data
-// TODO cache freeing function may be cleaner interface
-void prove(void *cache_data, char** proof_out, int* proof_len, char** public_randoms, int* public_randoms_len) {
-	init();
-
-        RemoteShuffler *P = (RemoteShuffler*) cache_data;
-
-	string proof = P->create_nizk();
-
-	*proof_len = proof.size();
-	*proof_out = new char [*proof_len + 1];
-	(*proof_out)[*proof_len] = '\0';
-	memcpy(*proof_out, proof.c_str(), *proof_len);
-	
-	string pubv = P->get_public_vector();
-	
-	char* rands = new char[pubv.size() + 1];
-	rands[pubv.size()] = '\0';
-	memcpy(rands, pubv.c_str(), pubv.size());
-	*public_randoms_len = pubv.size();
-	*public_randoms = rands;
-
-        delete P;
-}
-
-int verify(void *elgammal, char* proof, int proof_len, void* ciphers_in, void* post_shuffle_cipehrs, char* public_randoms, int public_randoms_len) {
-	init();
-	CipherTable *c = (CipherTable *)ciphers_in;
-	CipherTable *C = (CipherTable *)post_shuffle_cipehrs;
-	
-	if ((c->rows() != C->rows()) || (c->cols() != C->cols())) {
-		return false;
-	}
-	
-	string in_rands(public_randoms, public_randoms_len);
-	istringstream respstream(in_rands);
-	
-	VerifierClient V(num, C->rows(), C->cols(), c->getCMatrix(), C->getCMatrix(), (ElGammal*)elgammal, false, true);
-	V.set_public_vector(respstream, c->cols(), num[3], num[7], num[4]);
-	string proof_s(proof, proof_len);
-        delete[] public_randoms;
-	if (V.process_nizk(proof_s)) {
-		return 1;
-	}
-	return 0;
 }
 
 void delete_int_arr(int* x) {

@@ -13,6 +13,7 @@
 #include "Permutation.h"
 #include "Verifier_toom.h"
 #include "FakeZZ.h"
+#include "NIZKProof.h"
 NTL_CLIENT
 
 class VerifierClient {
@@ -22,6 +23,7 @@ class VerifierClient {
 
 	void set_public_vector(istringstream& f, long n, int o1, int o2, int o3);
 	bool process_nizk(string nizk);
+	string get_proof();
 
 
 	void print_state() const;
@@ -49,7 +51,8 @@ class VerifierClient {
 	vector<vector<Cipher_elg>* >* c; // contains the original input ciphertexts
 	vector<vector<Cipher_elg>* >* C; //Contains reencryptetd ciphers
 	double time_v;
-	
+
+	NIZKProof proof;
 	Verifier_toom* V;
 	bool owner_;
 	bool do_process_;

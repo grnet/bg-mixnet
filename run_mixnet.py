@@ -43,6 +43,7 @@ try:
                'generator': generator,
                'order': order,
                'public': public_key,
+               'proof': '',
                'original_ciphers': ciphers,
                'mixed_ciphers': ciphers}
         with open(ciphers_file, 'w') as f:

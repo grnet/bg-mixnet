@@ -66,15 +66,6 @@ void* shuffle_internal(void* reenc_key,
                        int number_of_elements,
                        void* input_ciphers,
                        int** permutation, int* permutation_len);
-void prove(void* cached_shuffle,
-           char** proof_out, int* proof_len,
-           char** public_randoms, int* public_randoms_len);
-int verify(void* elgammal,
-           char* proof, int proof_len,
-           void* ciphers_in,
-           void* post_shuffle_cipehrs,
-           char* public_randoms, int public_randoms_len);
-
 #ifdef __cplusplus
 }
 #endif

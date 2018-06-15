@@ -14,6 +14,7 @@ public:
 	NIZKProof(NIZKProof& other) : proof_(other.proof()) {}
 	NIZKProof(string ser);
 	
+	void set_proof(string proof);
 	void add_new_step(string& input_to_ver, ZZ& challenge, ZZ& rand);
 	void add_final_step(string& input_to_ver);
 	void read_next(string& input_to_ver, ZZ& challenge, ZZ& rand);

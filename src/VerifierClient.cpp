@@ -26,9 +26,12 @@ void VerifierClient::set_public_vector(istringstream& f, long n, int o1, int o2,
 	V->set_public_vector(f, n, o1, o2, o3);
 }
 
+string VerifierClient::get_proof() {
+	return proof.proof();
+}
 
 bool VerifierClient::process_nizk(string nizk) {
-	NIZKProof proof(nizk);
+	proof.set_proof(nizk);
 	string input_to_ver;
 	ZZ challenge, rand;
 	

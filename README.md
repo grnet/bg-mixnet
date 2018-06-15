@@ -1,4 +1,4 @@
-### Concept
+## Concept
 
 This project builds on top of the Stadium software project, which is hosted at https://github.com/nirvantyagi/stadium.
 Stadium is a distributed metadata-private messaging system.
@@ -7,7 +7,7 @@ The LICENSE, README, and NOTICE files of the original repo are retained in this 
 This project is concerned with the adapted mixnet of Bayer-Groth that is used internally by Stadium to shuffle messages.
 Of particular importance are the mixnet's efficiency and limitations.
 
-### Efficiency
+## Efficiency
 
 The Stadium mixnet's efficiency is significantly improved over both the original version and another version that uses non-interactive Toom-Cook multiplications and Keccak SHA-3 256 hash functions. Because the Stadium mixnet parallelises computations with OpenMP directives, its efficiency scales with the power of the underlying computing infrastructure. The following table presents some experiment results.
 
@@ -27,7 +27,7 @@ In their paper (see [README-stadium.md](https://github.com/grnet/bg-mixnet/blob/
 
 Stadium-Zeus regards the software setting where the cryptosystem and the ciphers are provided by GRNET's Zeus e-voting system (see [run_mixnet.py](https://github.com/grnet/bg-mixnet/blob/master/run_mixnet.py#L30)). In this setting, more computational resources are required to make ends meet both in terms of CPU time and memory space. Regading memory space, for 1M ciphers (64 * 15625) the resident set size (RSS) peaked at 8.5 GB RAM.
 
-### Limitations
+## Limitations
 
 Stadium's mixnet worked only for m = 64, m<=n where m is the ciphertext matrix rows and n is the ciphertext matrix columns. In the rest of the cases it either crashed or failed. With the present interventions, it works for m>=64, 4^x=m, x>2 and n>=4. Now, m and n are orthogonal as they should be. A description of the issues follows below.
 
@@ -43,11 +43,11 @@ Another issue in Stadium's mixnet is that the number of columns (n) should not b
 If n<4 was supplied, the mixnet generated ciphers up to n = 4.
 To cover for this, we don't allow n < 4.
 
-### Bayer-Groth's mixnet
+## Bayer-Groth's mixnet implementation in toom-cook-non-interactive-keccak branch
 
 Bayer Groth's mixnet implementation with Toom-Cook optimizations works for m = 16 and m = 64, but fails or crashes for all other values. For m in [16, 64] any number of columns can be specified.
 
-### Software dependencies
+## Software dependencies
 
 - Make
 - GCC
@@ -61,37 +61,69 @@ For convenience, you can export the variable in your favorite shell profile, say
 
 `export LD_LIBRARY_PATH=/usr/local/lib`
 
-### Configure
+## Configure
 
 Modify the `config/config` file
 
-### Build test executable and shared library
+## Build test executable and shared library
 
 `make`
 
 By default the bgmix shared library (`libbgmix.so`) is installed in the local directory.
 Again, for convenience, you can add the path to `LD_LIBRARY_PATH` as before to avoid specifying it when invoking executables that link to it.
 
-### Execute
+## Execute
 
 `./bgmix`
 
-### Logging
+## Logging
 
 By default the mixnet (library) logs messages in /var/log/celery/bg\_mixnet.log.
 This behavior can be changed at compile time with:
 
 `make LOG_CRYPTO_OUTPUT=log_file_with_absolute_path`
 
-### Make Python module with Cython
-
-`python setup.py build_ext -i`
-
-### Zeus integration
+## Zeus integration
 
 After cloning the current repository, clone [GRNET Zeus](https://github.com/grnet/zeus) and export PYTHONPATH to point to Zeus's root directory, e.g.
 
 `export PYTHONPATH="/home/user/zeus"`
+
+### Wrap the mixnet as a Python module with Cython
+
+`python setup.py build_ext -i`
+
+### IO interface between Zeus and mixnet
+
+A JSON file with the following schema:
+```
+{
+ 'modulus': BigInt,
+ 'generator': BigInt,
+ 'order': BigInt,
+ 'public': BigInt,
+ 'proof': String,
+ 'original_ciphers': Array,
+ 'mixed_ciphers': Array
+}
+```
+
+The mixnet's JSON (de)serialization functions are the following two:
+
+- [serialization function](https://github.com/grnet/bg-mixnet/blob/master/src/Functions.cpp#L122)
+- [deserialization function](https://github.com/grnet/bg-mixnet/blob/master/src/Functions.cpp#L295)
+
+### Programming interface extension
+
+The mixnet's programming interface currently includes:
+- [the generation of ciphertexts](https://github.com/grnet/bg-mixnet/blob/master/src/Bgmix.cpp#L361)
+- [mixing](https://github.com/grnet/bg-mixnet/blob/master/src/Bgmix.cpp#L449)
+
+To extend the programming interface:
+
+1. the C/C++ function to be added has to be declared in [Bgmix.h](https://github.com/grnet/bg-mixnet/blob/master/src/Bgmix.h) and [pybgmix.pxd](https://github.com/grnet/bg-mixnet/blob/master/pybgmix.pxd)
+2. a new Python function has to be implemented in [pybgmix.pyx](https://github.com/grnet/bg-mixnet/blob/master/pybgmix.pyx) that calls the C/C++ one
+3. the new Python function can be called from a Python context by importing the Python module, that is, `import pybgmix`
 
 ### Run as Celery application with tasks
 

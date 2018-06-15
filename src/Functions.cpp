@@ -121,7 +121,7 @@ void Functions::read_config(const string& name, vector<long> & num, ZZ & genq){
 
 void Functions::write_crypto_ciphers_to_file(const char *ciphers_file, CipherTable *ciphers,
 					CipherTable *mixed_ciphers, ElGammal *elgammal,
-					long m, long n) {
+					string proof, long m, long n) {
 	ofstream ofciphers;
 	ofciphers.open(ciphers_file);
 	if (ofciphers.fail()) {
@@ -139,6 +139,8 @@ void Functions::write_crypto_ciphers_to_file(const char *ciphers_file, CipherTab
 	ofciphers << ", ";
 	ofciphers << "\"public\": " << elgammal->get_pk();
 	ofciphers << ", ";
+	ofciphers << "\"proof\": \"" << proof;
+	ofciphers << "\", ";
 	ofciphers << "\"original_ciphers\": [";
 	for (int i = 0; i < m; i++)
 		for (int j = 0; j < n; j++) {

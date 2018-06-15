@@ -27,9 +27,10 @@ In their paper (see [README-stadium.md](https://github.com/grnet/bg-mixnet/blob/
 
 Stadium-Zeus regards the software setting where the cryptosystem and the ciphers are provided by GRNET's Zeus e-voting system (see [run_mixnet.py](https://github.com/grnet/bg-mixnet/blob/master/run_mixnet.py#L30)). In this setting, more computational resources are required to make ends meet both in terms of CPU time and memory space. Regading memory space, for 1M ciphers (64 * 15625) the resident set size (RSS) peaked at 8.5 GB RAM.
 
-Zeus uses ElGamal over big integers. The Stadium mixnet can use ElGamal over
+Zeus uses ElGamal over big integers. The Stadium mixnet can use ElGamal over:
 - big integers
 - points of the elliptic curve [25519](https://en.wikipedia.org/wiki/Curve25519)
+
 A compile macro `USE_REAL_POINTS` decides which flavor is used.
 
 The measurements of Stadium-Zeus are carried out using Zeus cryptosystem. All other measurements with the Stadium mixnet are carried out using ElGamal over the elliptic curve.

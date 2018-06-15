@@ -132,7 +132,7 @@ To extend the programming interface:
 
 1. the C/C++ function to be added has to be declared in [Bgmix.h](https://github.com/grnet/bg-mixnet/blob/master/src/Bgmix.h) and [pybgmix.pxd](https://github.com/grnet/bg-mixnet/blob/master/pybgmix.pxd)
 2. a new Python function has to be implemented in [pybgmix.pyx](https://github.com/grnet/bg-mixnet/blob/master/pybgmix.pyx) that calls the C/C++ one
-3. the new Python function can be called from a Python context by importing the Python module, that is, `import pybgmix`
+3. the new Python function can be called from a Python context by importing the Python module, that is, `import pybgmix` as in [mixnet.py](https://github.com/grnet/bg-mixnet/blob/master/mixnet.py)
 
 ### Run as Celery application with tasks
 
